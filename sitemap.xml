@@ -181,15 +181,19 @@
         <lastmod>2013-04-03T19:44:38-04:00</lastmod>
     </url>
     <url>
+        <loc>http://jhshi.me/2013/04/04/os161-synchronization-primitives-semaphore/</loc>
+        <lastmod>2013-04-04T15:24:45-04:00</lastmod>
+    </url>
+    <url>
         <loc>http://jhshi.me/robots.txt</loc>
         <lastmod>2013-04-02T11:41:27-04:00</lastmod>
     </url>
     <url>
         <loc>http://jhshi.me/blog/archives/</loc>
-        <lastmod>2013-04-04T13:49:54-04:00</lastmod>
+        <lastmod>2013-04-04T15:24:45-04:00</lastmod>
     </url>
     <url>
         <loc>http://jhshi.me/</loc>
-        <lastmod>2013-04-04T13:49:54-04:00</lastmod>
+        <lastmod>2013-04-04T15:24:45-04:00</lastmod>
     </url>
 </urlset>

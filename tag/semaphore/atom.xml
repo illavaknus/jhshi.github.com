@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:semaphore | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/semaphore/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T18:36:39-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: Semaphore]]></title>
+    <link href="http://jhshi.me/2013/04/04/os161-synchronization-primitives-semaphore/"/>
+    <updated>2013-04-04T14:52:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/04/os161-synchronization-primitives-semaphore</id>
+    <content type="html"><![CDATA[<p><a href="http://en.wikipedia.org/wiki/Semaphore_(programming)">Semaphore</a> denotes a certain number of shared resources. Basically, it's
+one counter and two operations on this counter, namely <code>P</code> and <code>V</code>. <code>P</code> is used
+to acquire one resource (thus decrementing the counter) while <code>V</code> is used to
+release one resource (thus incrementing the counter).</p>
+
+<!-- more -->
+
+
+<h3>A Metaphor</h3>
+
+<p>My favorite example is the printer. Say we have three printers in a big lab,
+where everybody in the lab shared those printers. Obviously only one printing
+job can be conducted by one printer at any time, otherwise, the printed content
+would be messed up.</p>
+
+<p>However, we can not use a single lock to protect the access of all these three
+printers. It'll be very dumb. An intuitive way is to use three locks, one for
+each printer. Yet more elegantly, we use a semaphore with initial counter as 3.
+Every time before a user submit a print job, he need to first <code>P</code> this semaphore
+to acquire one printer. And after he is done, he need to <code>V</code> this semaphore to
+release the printer. If there is already one print job at each printer, then the
+following poor guys who want to <code>P</code> this semaphore would have to wait.</p>
+
+<h3>What should a semaphore structure contain?</h3>
+
+<p>Apparently, we need an <strong>counter</strong> to record how many resources available. Since
+this counter is a shared variable, we need a <strong>lock</strong> to protect it. At this point,
+we only have the <code>spinlock</code> provided in <code>$OS161_SRC/kern/include/spinlock.h</code>.
+That's fine since our critical section is short anyway. In order to let the poor
+guys have a place to wait, we also need an <strong>wait channel</strong> (in
+<code>OS161_SRC/kern/include/wchan.h</code>)</p>
+
+<h3><code>P</code> Operation</h3>
+
+<p>The flow of <code>P</code> would be:</p>
+
+<ol>
+<li>Acquire the spin lock</li>
+<li>Check if there are some resources available (<code>counter &gt; 0</code>)</li>
+<li>If yes, we're lucky. Happily go to step 8.</li>
+<li>If no, then we first grab the lock of the wait channel, since the wait
+channel is also shared.</li>
+<li>Release the spin lock, and wait on the wait channel by calling <code>wchan_sleep</code></li>
+<li>We're sleeping...</li>
+<li>After wake up, first grab the spin lock, and go to step 2</li>
+<li>At this point, the <code>counter</code> should be positive, decrement it by 1</li>
+<li>Release the spin lock, and return</li>
+</ol>
+
+
+<h3><code>V</code> Operation</h3>
+
+<p><code>V</code> is much simpler compared to <code>P</code>. The flow is:</p>
+
+<ol>
+<li>Acquire the spin lock</li>
+<li>Increment the <code>counter</code> by 1</li>
+<li>Wake up some poor guy in the wait channel by calling <code>wchan_wakeone</code>)</li>
+<li>Release the spin lock and return</li>
+</ol>
+
+]]></content>
+  </entry>
+  
+</feed>

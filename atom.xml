@@ -4,7 +4,7 @@
   <title><![CDATA[Pearls in Life]]></title>
   <link href="http://jhshi.me/atom.xml" rel="self"/>
   <link href="http://jhshi.me/"/>
-  <updated>2013-04-04T14:35:15-04:00</updated>
+  <updated>2013-04-04T18:36:39-04:00</updated>
   <id>http://jhshi.me/</id>
   <author>
     <name><![CDATA[Jinghao Shi]]></name>
@@ -12,6 +12,75 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: Semaphore]]></title>
+    <link href="http://jhshi.me/2013/04/04/os161-synchronization-primitives-semaphore/"/>
+    <updated>2013-04-04T14:52:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/04/os161-synchronization-primitives-semaphore</id>
+    <content type="html"><![CDATA[<p><a href="http://en.wikipedia.org/wiki/Semaphore_(programming)">Semaphore</a> denotes a certain number of shared resources. Basically, it&#8217;s
+one counter and two operations on this counter, namely <code>P</code> and <code>V</code>. <code>P</code> is used
+to acquire one resource (thus decrementing the counter) while <code>V</code> is used to
+release one resource (thus incrementing the counter).</p>
+
+<!-- more -->
+
+
+<h3>A Metaphor</h3>
+
+<p>My favorite example is the printer. Say we have three printers in a big lab,
+where everybody in the lab shared those printers. Obviously only one printing
+job can be conducted by one printer at any time, otherwise, the printed content
+would be messed up.</p>
+
+<p>However, we can not use a single lock to protect the access of all these three
+printers. It&#8217;ll be very dumb. An intuitive way is to use three locks, one for
+each printer. Yet more elegantly, we use a semaphore with initial counter as 3.
+Every time before a user submit a print job, he need to first <code>P</code> this semaphore
+to acquire one printer. And after he is done, he need to <code>V</code> this semaphore to
+release the printer. If there is already one print job at each printer, then the
+following poor guys who want to <code>P</code> this semaphore would have to wait.</p>
+
+<h3>What should a semaphore structure contain?</h3>
+
+<p>Apparently, we need an <strong>counter</strong> to record how many resources available. Since
+this counter is a shared variable, we need a <strong>lock</strong> to protect it. At this point,
+we only have the <code>spinlock</code> provided in <code>$OS161_SRC/kern/include/spinlock.h</code>.
+That&#8217;s fine since our critical section is short anyway. In order to let the poor
+guys have a place to wait, we also need an <strong>wait channel</strong> (in
+<code>OS161_SRC/kern/include/wchan.h</code>)</p>
+
+<h3><code>P</code> Operation</h3>
+
+<p>The flow of <code>P</code> would be:</p>
+
+<ol>
+<li>Acquire the spin lock</li>
+<li>Check if there are some resources available (<code>counter &gt; 0</code>)</li>
+<li>If yes, we&#8217;re lucky. Happily go to step 8.</li>
+<li>If no, then we first grab the lock of the wait channel, since the wait
+channel is also shared.</li>
+<li>Release the spin lock, and wait on the wait channel by calling <code>wchan_sleep</code></li>
+<li>We&#8217;re sleeping&#8230;</li>
+<li>After wake up, first grab the spin lock, and go to step 2</li>
+<li>At this point, the <code>counter</code> should be positive, decrement it by 1</li>
+<li>Release the spin lock, and return</li>
+</ol>
+
+
+<h3><code>V</code> Operation</h3>
+
+<p><code>V</code> is much simpler compared to <code>P</code>. The flow is:</p>
+
+<ol>
+<li>Acquire the spin lock</li>
+<li>Increment the <code>counter</code> by 1</li>
+<li>Wake up some poor guy in the wait channel by calling <code>wchan_wakeone</code>)</li>
+<li>Release the spin lock and return</li>
+</ol>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Vimium Not Working in Google Search Results Page]]></title>
@@ -1229,106 +1298,6 @@ of unaligned pointers</p></li>
 <p>After all these checking, just return <code>heap_end</code> as a <code>void*</code> pointer and increase
 <code>heap_end</code> by <code>inc</code>. Of course, like any other system calls, you need to add a
 case entry in the <code>syscall</code> function.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[ssh/scp without password]]></title>
-    <link href="http://jhshi.me/2012/04/27/sshscp-without-password/"/>
-    <updated>2012-04-27T12:45:41-04:00</updated>
-    <id>http://jhshi.me/2012/04/27/sshscp-without-password</id>
-    <content type="html"><![CDATA[<p>Suppose you have two machines: A and B. A is your work machine, you do most of
-your work on it. But B is a little special (e.g., connected to some specific
-hardware) that you need to ssh on it or copy some file from A to B from time to
-time. Here is the way that you can get rid of entering passwords every time you
-do ssh/scp.</p>
-
-<!-- more -->
-
-
-<p>First, on machine A, generate a DSA key pair:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ssh-keygen -t rsa
-</span><span class='line'>Generating public/private rsa key pair.
-</span><span class='line'>Enter file in which to save the key <span class="o">(</span>YOUR_HOME/.ssh/id_rsa<span class="o">)</span>:
-</span><span class='line'><span class="c"># press ENTER here to accept the default filename </span>
-</span><span class='line'>Enter passphrase <span class="o">(</span>empty <span class="k">for </span>no passphrase<span class="o">)</span>:
-</span><span class='line'><span class="c"># press ENTER here to use no passphrase, otherwise, you still need</span>
-</span><span class='line'><span class="c"># to enter this passphrase when ssh </span>
-</span><span class='line'>Enter same passphrase again:
-</span><span class='line'><span class="c"># press ENTER here </span>
-</span><span class='line'>Your identification has been saved in <span class="nv">$HOME</span>/.ssh/id_rsa.
-</span><span class='line'>Your public key has been saved in <span class="nv">$HOME</span>/.ssh/id_rsa.pub.
-</span><span class='line'>The key fingerprint is: ..... <span class="o">(</span>omited<span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Then, change the access mode of .ssh directory</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>chmod 775 ~/.ssh
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Then append the content of your just generated <code>id_rsa.pub</code> to the
-<code>$HOME/.ssh/authorized_keys</code> file on machine B:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># copy the id_rsa.pub file to host B </span>
-</span><span class='line'><span class="nv">$ </span>scp ~/.ssh/id_rsa.pub b@B:.
-</span><span class='line'><span class="c"># login to B </span>
-</span><span class='line'><span class="nv">$ </span>ssh b@B
-</span><span class='line'><span class="c"># append the content to authorized_keys </span>
-</span><span class='line'><span class="nv">$ </span>cat id_rsa.pub &gt;&gt; .ssh/authorized_keys
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Finally, ssh on to B and change the access mode of the file <code>authorized_keys</code>.
-This is optional, maybe you don&#8217;t need to do this if you can already ssh
-without entering password.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ssh b@B
-</span><span class='line'><span class="nv">$ </span>chmod 700 .ssh
-</span><span class='line'><span class="nv">$ </span>chmod 640 ~/.ssh/authorized_keys
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Depend on your version of ssh, you may also need to do the following:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ssh b@B <span class="nv">$ </span>cp ~/.ssh/authorized_keys ~/.ssh/authorized_keys2
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>That it! Enjoy!</p>
-
-<p><strong>Reference</strong></p>
-
-<ul>
-<li><p><a href="http://www.cyberciti.biz/faq/ssh-password-less-login-with-dsa-publickey-authentication/">http://www.cyberciti.biz/faq/ssh-password-less-login-with-dsa-publickey-authentication/</a></p></li>
-<li><p><a href="http://www.linuxproblem.org/art_9.html">http://www.linuxproblem.org/art_9.html</a></p></li>
-</ul>
-
 ]]></content>
   </entry>
   
