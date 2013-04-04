@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: linux | Pearls in Life]]></title>
+  <link href="http://jhshi.me/categories/linux/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-03T20:37:35-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Use rsync and cron to do regular backup (Part II)]]></title>
+    <link href="http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-ii/"/>
+    <updated>2012-07-11T12:53:52-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-ii</id>
+    <content type="html"><![CDATA[<p>Now that we can <a href="/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-i">take advantage of rsync to minimize the data to transfer when
+backup</a>. But it's still a little uncomfortable if we need to do this manually
+everyday, right? Well, cron is here to solve the pain.</p>
+
+<!-- more -->
+
+
+<p><a href="http://en.wikipedia.org/wiki/Cron">Cron</a> is kind of a system service that
+automatically do some job as you specified. Backup, for example, is a perfect
+kind of job that we can count on cron.</p>
+
+<p>First, we need to specify a job that we want cron to do. In my case, I want
+cron to automatically sync my source tree folder on remote data center and my
+local backup folder. A simple rsync command seems meet my need. But actually,
+there are more to consider:</p>
+
+<ul>
+<li><p>I don't want to copy the obj files, since they are normally large in size
+and change frequently, but can be easily re-generated. But I also don't want to
+skip the entire build folder when do rsync since there are some configure files
+in there.</p></li>
+<li><p>The backup process should be totally automated. More specifically, no
+password is needed when do rysnc.</p></li>
+</ul>
+
+
+<p>Towards the first need, I can use ssh to send remote command to
+do necessary clean up work before rysnc. And the second need can
+be meted according to my previous post about <a href="/2012/04/27/sshscp-without-password">ssh/scp without password</a>.</p>
+
+<p>So my final backup script looks like this:</p>
+
+<p>```bash</p>
+
+<h1>!/bin/sh</h1>
+
+<h1>~/backup.sh</h1>
+
+<p>LOG_FILE=~/backup.log
+SOURCE_DIR=b@B:~/src/
+TARGET_DIR=~/src_backup</p>
+
+<p>date >> $LOG_FILE
+echo "Synchronization start..." >> $LOG_FILE
+ssh b@B 'cd ~/src/build; make clean; rm -rf obj/" >> $LOG_FILE
+rsync -avz --exclude "tags" $SOURCE_DIR $TARGET_DIR >> $LOG_FILE
+echo "Synchronization done" >> $LOG_FILE
+```</p>
+
+<p>Once we figure out what to do, we need to tell cron about our job. The
+configure file of cron is <code>/etc/crontab</code>. A job description is like follows:</p>
+
+<p>```</p>
+
+<h1>Example of job definition:</h1>
+
+<h1>.----------------minute (0 - 59)</h1>
+
+<h1>| .------------- hour (0 - 23)</h1>
+
+<h1>| | .---------- day of month (1 - 31)</h1>
+
+<h1>| | | .------- month (1 - 12) OR jan,feb,mar,apr ...</h1>
+
+<h1>| | | | .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat</h1>
+
+<h1>| | | | |</h1>
+
+<h1>* * * * * user-name command to be executed 0 0 * * * jack ~/backup.sh</h1>
+
+<p>```</p>
+
+<p>I want to do backup every day on midnight so I set the minute and hour both to
+0. The asterisk (<code>*</code>) symbol in day/month means any valid values.</p>
+
+<p>Now we are done. The back up process is completely automated and scheduled.</p>
+
+<p><strong>Reference</strong>:</p>
+
+<p><a href="http://myhowtosandprojects.blogspot.hk/2008/07/sincronize-folders-with-rsync-using-ssh.html">http://myhowtosandprojects.blogspot.hk/2008/07/sincronize-folders-with-rsync-using-ssh.html</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Use rsync and cron to do regular backup (Part I)]]></title>
+    <link href="http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-i/"/>
+    <updated>2012-07-11T12:23:45-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-i</id>
+    <content type="html"><![CDATA[<p>Recently I do most of my work on a remote data center through a slow network
+connection (&lt;100KB/sec). I usually backup my project source tree as follows.
+I first do make clean and also delete any unnecessary obj files to shrink the
+total file size, then I compress the whole source tree as a tar ball and then I
+use <code>scp</code> locally to fetch the backup tar ball to my local machine. The procedure
+is quite boring since I need to do this every day before I go home, otherwise
+the whole bandwidth will be occupied for near an hour during which I can almost
+do nothing.</p>
+
+<p>Situation gets better when I find <code>rsync</code> and <code>cron</code>. Here is how I do automatic
+regular (daily) backup with them.</p>
+
+<!-- more -->
+
+
+<p><a href="http://en.wikipedia.org/wiki/Rsync">Rsync</a> is a file synchronization tool
+that aims to minimize the data transfer during copy files. This is done via
+only send the diffs to destination. It is perfect when you need to do regular
+copy between two fixed locations. Rsync has many options (well, as most of
+other GNU tools), here is two of them that are used more frequently:</p>
+
+<p>```bash</p>
+
+<h1>ensure that symbolic links, devices, attributes, permissions,</h1>
+
+<h1>ownerships, etc are preserved in the transfer</h1>
+
+<p>-a, --archive</p>
+
+<h1>compress data during transfer, especially useful when the bandwidth is limited</h1>
+
+<p>-z, --compress</p>
+
+<h1>exclude the directories or files that you don't want to sync, such as obj</h1>
+
+<h1>files, tag files, etc</h1>
+
+<p>--exclude
+<code>``
+Suppose that you have a source tree on host B:</code>~/src<code>, and you want to sync this
+source tree with a local folder named:</code>~/src_backup`, then the follow command
+will suffice:</p>
+
+<p><code>bash
+$ rsync -avz --exclude "obj/" --exclude "tags" --exclude "build" b@B:~/src/ ~/src_backup
+</code></p>
+
+<p>The two exclude option will tell rsync to skip the obj subdirectory as well
+as the tags file. The trailing slash in the source (<code>b@B:~/src/</code>) will tell
+rsync not to create an additional directory level at the destination. Without
+this slash, rsync will create a <code>src</code> directory under <code>~/src_backup</code>, which is not
+desirable.</p>
+
+<p>Now that after the first time rsync, the following rsync commands will only
+transfer the file changes to local, which is a great save of the bandwidth.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ssh/scp without password]]></title>
+    <link href="http://jhshi.me/2012/04/27/sshscp-without-password/"/>
+    <updated>2012-04-27T12:45:41-04:00</updated>
+    <id>http://jhshi.me/2012/04/27/sshscp-without-password</id>
+    <content type="html"><![CDATA[<p>Suppose you have two machines: A and B. A is your work machine, you do most of
+your work on it. But B is a little special (e.g., connected to some specific
+hardware) that you need to ssh on it or copy some file from A to B from time to
+time. Here is the way that you can get rid of entering passwords every time you
+do ssh/scp.</p>
+
+<!-- more -->
+
+
+<p>First, on machine A, generate a DSA key pair:</p>
+
+<p>```bash
+$ ssh-keygen -t rsa
+Generating public/private rsa key pair.
+Enter file in which to save the key (YOUR_HOME/.ssh/id_rsa):</p>
+
+<h1>press ENTER here to accept the default filename</h1>
+
+<p>Enter passphrase (empty for no passphrase):</p>
+
+<h1>press ENTER here to use no passphrase, otherwise, you still need</h1>
+
+<h1>to enter this passphrase when ssh</h1>
+
+<p>Enter same passphrase again:</p>
+
+<h1>press ENTER here</h1>
+
+<p>Your identification has been saved in $HOME/.ssh/id_rsa.
+Your public key has been saved in $HOME/.ssh/id_rsa.pub.
+The key fingerprint is: ..... (omited)
+```</p>
+
+<p>Then, change the access mode of .ssh directory</p>
+
+<p><code>bash
+$ chmod 775 ~/.ssh
+</code></p>
+
+<p>Then append the content of your just generated <code>id_rsa.pub</code> to the
+<code>$HOME/.ssh/authorized_keys</code> file on machine B:</p>
+
+<p>```bash</p>
+
+<h1>copy the id_rsa.pub file to host B</h1>
+
+<p>$ scp ~/.ssh/id_rsa.pub b@B:.</p>
+
+<h1>login to B</h1>
+
+<p>$ ssh b@B</p>
+
+<h1>append the content to authorized_keys</h1>
+
+<p>$ cat id_rsa.pub >> .ssh/authorized_keys
+```</p>
+
+<p>Finally, ssh on to B and change the access mode of the file <code>authorized_keys</code>.
+This is optional, maybe you don't need to do this if you can already ssh
+without entering password.</p>
+
+<p><code>bash
+$ ssh b@B
+$ chmod 700 .ssh
+$ chmod 640 ~/.ssh/authorized_keys
+</code></p>
+
+<p>Depend on your version of ssh, you may also need to do the following:</p>
+
+<p><code>bash
+$ ssh b@B $ cp ~/.ssh/authorized_keys ~/.ssh/authorized_keys2
+</code></p>
+
+<p>That it! Enjoy!</p>
+
+<p><strong>Reference</strong></p>
+
+<ul>
+<li><p><a href="http://www.cyberciti.biz/faq/ssh-password-less-login-with-dsa-publickey-authentication/">http://www.cyberciti.biz/faq/ssh-password-less-login-with-dsa-publickey-authentication/</a></p></li>
+<li><p><a href="http://www.linuxproblem.org/art_9.html">http://www.linuxproblem.org/art_9.html</a></p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

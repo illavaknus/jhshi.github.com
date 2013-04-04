@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:chrome | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tags/chrome/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-03T20:23:35-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Vimium Not Working in Google Search Results Page]]></title>
+    <link href="http://jhshi.me/2013/03/15/vimium-not-working-in-google-search-results-page/"/>
+    <updated>2013-03-15T02:50:16-04:00</updated>
+    <id>http://jhshi.me/2013/03/15/vimium-not-working-in-google-search-results-page</id>
+    <content type="html"><![CDATA[<p>If you're Vim user, then you must try <a href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>. It makes your browsing
+much much comfortable!</p>
+
+<!-- more -->
+
+
+<p>These days, I found that Vimium commands (<code>j</code>, <code>k</code>, <code>f</code>) don't work on Google search
+results page. But works just in in any other pages. I tried turning the instant
+search off, logging out my account in Google's homepage, turning of personalized
+search results, etc. None of those work.</p>
+
+<p>Then I found that Vimium only stop working if I use Chrome's Omnibox to search.
+That is, if I do the search in Google's home page instead of Chrome's Omnibox,
+then everything is fine. I suspect that some extra flags in Omnibox's default
+search pattern is the reason why Vimium refused to work.</p>
+
+<p>But Omnibox is so convenience to use (<code>Alt+D</code> to focus &amp; search). Opening
+Google's homepage every time you need search will certainly be another pain. So
+I changed the default behavior of Chrome's Omnibox. Unfortunately, the built-in
+Google search pattern is unchangeable, so I added an new search engine entry
+and set it as default. Here is the fields of the new entry:</p>
+
+<p><code>
+Name: Google (or whatever you want)
+Keyword: Google (or whatever you want)
+Search Pattern: http://www.google.com/search?q=%s
+</code></p>
+
+<p>Here is a more detailed information about Google's search URL. Add whatever you
+need, but keep it minimal, in case you screwed up with Vimium again :-)</p>
+
+<p><a href="http://www.blueglass.com/blog/google-search-url-parameters-query-string-anatomy/">http://www.blueglass.com/blog/google-search-url-parameters-query-string-anatomy/</a></p>
+]]></content>
+  </entry>
+  
+</feed>

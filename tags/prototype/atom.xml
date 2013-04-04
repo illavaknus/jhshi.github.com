@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:prototype | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tags/prototype/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-03T20:23:35-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[error: function declaration isn't a prototype]]></title>
+    <link href="http://jhshi.me/2012/02/14/error-function-declaration-isnt-a-prototype/"/>
+    <updated>2012-02-14T09:51:44-05:00</updated>
+    <id>http://jhshi.me/2012/02/14/error-function-declaration-isnt-a-prototype</id>
+    <content type="html"><![CDATA[<p>This error occurs when you try to declare a function with no arguments, and
+compile with <code>-Werror=strict-prototypes</code>, as follows:</p>
+
+<!-- more -->
+
+
+<p><code>c
+int foo();
+</code></p>
+
+<p>Fix it by declare it as</p>
+
+<p><code>c
+int foo(void);
+</code></p>
+
+<p>This is because in c, <code>foo(void)</code> takes no arguments while <code>foo()</code> takes a infinite
+number of arguments.</p>
+
+<p>Thanks to this <a href="http://stackoverflow.com/questions/42125/function-declaration-isnt-a-prototype">stackoverflow post</a></p>
+]]></content>
+  </entry>
+  
+</feed>

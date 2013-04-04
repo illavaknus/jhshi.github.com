@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:argument passing | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tags/argument-passing/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-03T20:23:35-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161: Arguments Passing in System Call]]></title>
+    <link href="http://jhshi.me/2012/03/28/os161-arguments-passing-in-system-call/"/>
+    <updated>2012-03-28T17:59:26-04:00</updated>
+    <id>http://jhshi.me/2012/03/28/os161-arguments-passing-in-system-call</id>
+    <content type="html"><![CDATA[<p>One principle of kernel programming is that: <strong>do not trust anything users
+passed in</strong>. Since we assume that users are bad, they will do anything they can
+to crash the kernel (just as <code>$OS161_SRC/user/testbin/badcall/badcall.c</code> do). So
+we need pay special attention to the arguments of the system calls, <strong>especially the
+pointers</strong>.</p>
+
+<!-- more -->
+
+
+<p><code>$OS161_SRC/kern/vm/copyinout.c</code> provides several useful facilities to safely copy user
+level arguments into kernel or vice versa. They assure that <strong>even if user arguments is
+illegal, the kernel can still get control and handle the error, instead of just
+crash</strong>. So let's see how can they be applied in the system calls.</p>
+
+<h3>User space strings</h3>
+
+<p>Some system call, e.g. <code>open</code>, <code>chdir</code>, <code>execv</code>, requires a user level string as
+arguments. We can use <code>copyinstr</code> to do this. See the prototype of <code>copyinstr</code>:</p>
+
+<p><code>c
+int copyinstr(const_userptr_t usersrc, char* dest, size_t len, size_t *actual)
+</code></p>
+
+<p><code>const_userptr_t</code> is just a signpost that make <code>usersrc</code> explicitly looks like a user
+pointer. So basically, this function copies a <code>\0</code> terminated user
+space string into kernel buffer <code>dest</code>, and copy as much as <code>len</code> bytes, and
+return the actual bytes copied in <code>actual</code>. Note that <code>copyinstr</code> will also
+copy the last <code>\ 0</code>. Suppose we have a function that takes a user space string
+as argument.</p>
+
+<p>```c
+int foo (char* name) {</p>
+
+<pre><code>char kbuf[BUF_SIZE]; 
+int err;
+size_t actual;
+
+if ((err = copyinstr((const_userptr_t)name, kbuf, BUF_SIZE, &amp;actual)) != 0)
+{ 
+    return err; 
+} 
+return 0; 
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Then if we call <code>foo("hello")</code>, on success, <code>actual</code> will be 6, <strong>including the
+last <code>\0</code></strong>.</p>
+
+<h3>User space buffer</h3>
+
+<p>In system calls like <code>read</code> or <code>write</code>, we need to read from or write to user space
+buffers. We can use <code>copyin</code> or <code>copyout</code> here. For example:</p>
+
+<p>```c
+int foo_read(unsigned char* ubuf, size_t len)
+{</p>
+
+<pre><code>int err;
+
+void* kbuf = kmalloc(len); 
+if ((err = copyin((const_userptr_t)ubuf, kbuf, len)) != 0) 
+{ 
+    kfree(kbuf);
+    return err; 
+}
+
+if ((err = copyout(kbuf, (userptr_t)ubuf, len)) != 0) 
+{ 
+    kfree(kbuf);
+    return err; 
+}
+
+return 0; 
+</code></pre>
+
+<p>}
+```</p>
+]]></content>
+  </entry>
+  
+</feed>

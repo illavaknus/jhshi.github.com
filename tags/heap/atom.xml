@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:heap | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tags/heap/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-03T20:37:35-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 sbrk System Call]]></title>
+    <link href="http://jhshi.me/2012/04/27/os161-sbrk-system-call/"/>
+    <updated>2012-04-27T18:17:36-04:00</updated>
+    <id>http://jhshi.me/2012/04/27/os161-sbrk-system-call</id>
+    <content type="html"><![CDATA[<p>If you're not familiar with <code>sbrk</code> system call, here is <a href="http://en.wikipedia.org/wiki/Sbrk">it's wiki</a>,
+and its <a href="http://www.cs.utah.edu/flux/moss/node39.html">interface description</a>. In a nutshell,
+<code>malloc</code> will use <code>sbrk</code> to get heap space.</p>
+
+<!-- more -->
+
+
+<p>In <code>as_define_region</code>, we've find the highest address that user text and data
+segment occupy, and based on this, we've set the <code>heap_start</code> in <code>struct
+addrspace</code>. This makes the <code>sbrk</code> system call implementation quite easy: almost
+just parameter checking work. Several points:</p>
+
+<ul>
+<li><p><code>inc</code> could be negative, so make sure <code>heap_end+inc</code> >= <code>heap_start</code></p></li>
+<li><p>We need to set up a limit to user's heap size, e.g. 16MB or 32MB.
+Otherwise, some application such as the test program <code>malloctest</code> will try to
+malloc as much as memory as it can (~1GB), and your OS will suffer serving
+these kind of programs, especially when you have only 512KB physical memory. So
+we need to check <code>heap_end+inc-heap_start &lt; USER_HEAP_LIMIT</code></p></li>
+<li><p>Don't forget round up inc by 4. This is optional but can lower the chance
+of unaligned pointers</p></li>
+</ul>
+
+
+<p>After all these checking, just return <code>heap_end</code> as a <code>void*</code> pointer and increase
+<code>heap_end</code> by <code>inc</code>. Of course, like any other system calls, you need to add a
+case entry in the <code>syscall</code> function.</p>
+]]></content>
+  </entry>
+  
+</feed>

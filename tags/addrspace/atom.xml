@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:addrspace | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tags/addrspace/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-03T20:37:35-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 User Address Space]]></title>
+    <link href="http://jhshi.me/2012/04/24/os161-user-address-space/"/>
+    <updated>2012-04-24T19:14:14-04:00</updated>
+    <id>http://jhshi.me/2012/04/24/os161-user-address-space</id>
+    <content type="html"><![CDATA[<p>Now we've set up our coremap and also have the routines to allocate and free
+physical pages. It's the time to set up user's virtual address space.</p>
+
+<p>Basically, we'll adopt <strong>two-level page table</strong>. If you're not
+already familiar with this, you can check out the <a href="http://en.wikipedia.org/wiki/Page_table">page table wiki</a>
+and <a href="http://pages.cs.wisc.edu/~remzi/OSFEP/vm-tlbs.pdf">this document talking about MIPS and X86 paging</a>.</p>
+
+<!-- more -->
+
+
+<p>The page table entry format will be much alike those in X86. For a page
+directory entry, the upper 20 bits indicates the base physical address of the
+page table, and <strong>we use one bit in the lower 12 bits to indicate whether this
+page table exist or not</strong>. For a page table entry, the upper 20 bits stores
+the base physical address of the actual page, while the lower 12 bits contain
+some attribute of this page, e.g., readable, writable, executable, etc. You are
+free to define all these (format of page directory and page table entry)
+though, since the addressing process are totally done by software in MIPS, but
+following the conventions is still better for compatibility as well as easy
+programming.</p>
+
+<h3>What to store in the <code>addrspace</code> structure?</h3>
+
+<p><strong>An address space is actually just a page directory</strong>: we can use this
+directory and page table to translate all the addresses inside the address
+space. And we also need to keep some other information like user heap start,
+user heap end, etc. But that's all, and no more.</p>
+
+<p>So in <code>as_create</code>, we just allocate a <code>addrspace</code> structure using <code>kmalloc</code>,
+and allocate a physical page (using <code>page_alloc</code>) as page directory and store
+it's address (either <code>KVADDR</code> or <code>PADDR</code> is OK, but you can just choose one).</p>
+
+<p>Besides, we need to record somewhere in the <code>addrspace</code> structure the valid
+regions user defined using <code>as_define_region</code>, since we're going to need that
+information during page fault handing to check whether the faulted address is
+valid or not.</p>
+
+<h3>Address Translating with <code>pgdir_walk</code></h3>
+
+<p><strong>This is another most important and core function in this lab.</strong> Basically,
+given an address space and virtual address, we want to find the corresponding
+physical address. This is what <code>pgdir_walk</code> does. We first extract the page
+directory index (top 10 bits) from the <code>va</code> and use it to index the page
+directory, thus we get the base physical address of the page table. Then we
+extract the page table index (middle 10 bits) from <code>va</code> and use it to index the
+page directory, thus we get the base physical address of the actual page.</p>
+
+<p>Several points to note:</p>
+
+<ul>
+<li><p>Instead of return the physical address, <strong>you may want to return the page
+table entry pointer</strong> instead. Since in most cases, we use <code>pgdir_walk</code> to get
+page table entries and modify it</p></li>
+<li><p>We'll also need to pass <code>pgdir_walk</code> a flag, indicating that whether we want
+to create a page table if non-exist (remember the <strong>present bit</strong> of page
+directory entry?). Since sometimes, we want to make sure that a <code>va</code> is mapped to
+a physical page when calling <code>pgdir_walk</code>. But most of the time, we just want to
+query if a <code>va</code> is mapped.</p></li>
+<li><p>Think clearly about which is physical address, and which is virtual
+address. Page directory entry and page table entry should store the physical
+address base. You'll need a lot <code>PADDR_TO_KVADDR</code> here.</p></li>
+</ul>
+
+
+<h3>Copy address space using <code>as_copy</code></h3>
+
+<p>This part is easy if you decide not support Copy-On-Write pages. Basically, you
+just <code>pgdir_walk</code> old address space's page table, and copy all the present pages.
+Only one point, don't forget to <strong>copy all the attribute bits (low 12 bits) of
+the old page table entry</strong>.</p>
+
+<p>You'll get some extra work when you enable swapping: you need to copy all the
+swapped pages beside present pages as well.</p>
+
+<h4>Destroy address space with <code>as_destroy</code></h4>
+
+<p>Same easy as <code>as_copy</code>, just <code>pgdir_walk</code> the page table and free all the present
+pages. Also same with <code>as_copy</code>, you need to free the swapped pages latter</p>
+
+<h3>Define regions using <code>as_define_region</code></h3>
+
+<p>Since we'll do <strong>on-demand paging</strong>, so we won't allocate any pages in
+<code>as_define_region</code> Instead, we just walk through the
+page table, and set the attribute bits accordingly. One point, remember the
+<code>heap_start</code> and <code>heap_end</code> field in <code>struct addrspace</code>? Question: <strong>where should
+user heap start? Immediately after user bss segment!</strong> And how would we know the
+end of user bss segment? In <code>as_define_region</code>! So each time in <code>as_define_region</code>,
+we just compare addrspace's current hew<code>and the region end, and set
+the</code>heap_start<code>right after (</code>vaddr+sz<code>). Don't forget to **proper align the
+</code>heap_start`(by page bound)**, of course.</p>
+
+<p>This should also be the place we record each region information (e.g., base,
+size, permission, etc) so that we can check them in <code>vm_fault</code>.</p>
+
+<p>{% img center /images/2012-04-24-mips-as1.png %}</p>
+
+<h3>Miscellaneous</h3>
+
+<p>In <code>as_activate</code>, if you don't use the ASID field of TLB entry, then you can just
+shoot down all the tlb entries. It's the easiest to way to go.</p>
+
+<p>In <code>as_prepare_load</code>, we need to change each regions' page table permision as read-write
+since we're going to load content (code, date) into them. And in
+<code>as_complete_load</code>, we need to change their page table permissions back to
+whatever the original value.</p>
+
+<p>In <code>as_define_stack</code>, we just return <code>USERSTACKTOP</code>.</p>
+]]></content>
+  </entry>
+  
+</feed>

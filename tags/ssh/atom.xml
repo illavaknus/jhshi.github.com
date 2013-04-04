@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:ssh | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tags/ssh/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-03T20:23:35-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[ssh/scp without password]]></title>
+    <link href="http://jhshi.me/2012/04/27/sshscp-without-password/"/>
+    <updated>2012-04-27T12:45:41-04:00</updated>
+    <id>http://jhshi.me/2012/04/27/sshscp-without-password</id>
+    <content type="html"><![CDATA[<p>Suppose you have two machines: A and B. A is your work machine, you do most of
+your work on it. But B is a little special (e.g., connected to some specific
+hardware) that you need to ssh on it or copy some file from A to B from time to
+time. Here is the way that you can get rid of entering passwords every time you
+do ssh/scp.</p>
+
+<!-- more -->
+
+
+<p>First, on machine A, generate a DSA key pair:</p>
+
+<p>```bash
+$ ssh-keygen -t rsa
+Generating public/private rsa key pair.
+Enter file in which to save the key (YOUR_HOME/.ssh/id_rsa):</p>
+
+<h1>press ENTER here to accept the default filename</h1>
+
+<p>Enter passphrase (empty for no passphrase):</p>
+
+<h1>press ENTER here to use no passphrase, otherwise, you still need</h1>
+
+<h1>to enter this passphrase when ssh</h1>
+
+<p>Enter same passphrase again:</p>
+
+<h1>press ENTER here</h1>
+
+<p>Your identification has been saved in $HOME/.ssh/id_rsa.
+Your public key has been saved in $HOME/.ssh/id_rsa.pub.
+The key fingerprint is: ..... (omited)
+```</p>
+
+<p>Then, change the access mode of .ssh directory</p>
+
+<p><code>bash
+$ chmod 775 ~/.ssh
+</code></p>
+
+<p>Then append the content of your just generated <code>id_rsa.pub</code> to the
+<code>$HOME/.ssh/authorized_keys</code> file on machine B:</p>
+
+<p>```bash</p>
+
+<h1>copy the id_rsa.pub file to host B</h1>
+
+<p>$ scp ~/.ssh/id_rsa.pub b@B:.</p>
+
+<h1>login to B</h1>
+
+<p>$ ssh b@B</p>
+
+<h1>append the content to authorized_keys</h1>
+
+<p>$ cat id_rsa.pub >> .ssh/authorized_keys
+```</p>
+
+<p>Finally, ssh on to B and change the access mode of the file <code>authorized_keys</code>.
+This is optional, maybe you don't need to do this if you can already ssh
+without entering password.</p>
+
+<p><code>bash
+$ ssh b@B
+$ chmod 700 .ssh
+$ chmod 640 ~/.ssh/authorized_keys
+</code></p>
+
+<p>Depend on your version of ssh, you may also need to do the following:</p>
+
+<p><code>bash
+$ ssh b@B $ cp ~/.ssh/authorized_keys ~/.ssh/authorized_keys2
+</code></p>
+
+<p>That it! Enjoy!</p>
+
+<p><strong>Reference</strong></p>
+
+<ul>
+<li><p><a href="http://www.cyberciti.biz/faq/ssh-password-less-login-with-dsa-publickey-authentication/">http://www.cyberciti.biz/faq/ssh-password-less-login-with-dsa-publickey-authentication/</a></p></li>
+<li><p><a href="http://www.linuxproblem.org/art_9.html">http://www.linuxproblem.org/art_9.html</a></p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

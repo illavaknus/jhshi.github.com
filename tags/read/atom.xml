@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:read | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tags/read/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-03T20:23:35-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 File System Calls]]></title>
+    <link href="http://jhshi.me/2012/03/14/os161-file-system-calls/"/>
+    <updated>2012-03-14T17:19:17-04:00</updated>
+    <id>http://jhshi.me/2012/03/14/os161-file-system-calls</id>
+    <content type="html"><![CDATA[<p>Assume you've read my previous post on <a href="/2012/03/14/os161-file-operation-overview/">file operations in OS161</a>,
+then everything is quite straightforward. One more thing, remember to protect
+every access to the file descriptor data structure using lock!</p>
+
+<p>Let's get started.</p>
+
+<!-- more -->
+
+
+<h3><code>sys_open</code> and <code>sys_close</code></h3>
+
+<p>We'll rely on <code>vfs_open</code> to do most of the work. But before that, we need to
+check:</p>
+
+<ul>
+<li><p>Is <code>filename</code> a valid pointer? (alignment, NULL, kernel pointer, etc.)</p></li>
+<li><p>Is flags valid? flags can only contain exactly one of <code>O_RDONLY</code>, <code>O_WRONLY</code>
+and <code>O_RDWR</code></p></li>
+</ul>
+
+
+<p>After these, we need to allocate a fd to the opened file: just scan the
+<code>curthread-&gt;t_fdtable</code> and find a available slot (<code>NULL</code>). Then we need to
+actually open the file using <code>vfs_open</code>. Note that we need to copy <code>filename</code>
+into kernel buffer using <code>copyinstr</code>, for both security reasons, and that
+<code>vfs_open</code> may destroy the pathname passed in.</p>
+
+<p>Once <code>vfs_open</code> successfully returns, we can initialize a <code>struct fdesc</code>. Pay
+special attention to <code>fdesc-&gt;offset</code>. Without <code>O_APPEND</code>, it should be zero.
+But with <code>O_APPEND</code>, it should be file size. So we need to check it and use
+<code>VOP_STAT</code> to get file size if necessary.</p>
+
+<p><code>sys_close</code> is quite easy. We first decrease the file reference counter. And
+close the file using <code>vfs_close</code> and free the <code>struct fdesc</code> if the counter
+reaches 0.</p>
+
+<h3><code>sys_read</code> and <code>sys_write</code></h3>
+
+<p>As usual, before do anything, first check the parameters.</p>
+
+<p>The main work here is using <code>VOP_READ</code> or <code>VOP_WRITE</code> together with <code>struct
+iovec</code> and <code>struct uio</code>. <code>kern/syscall/loadelf.c</code> is a good start, but we can
+leverage <code>uio_kinit</code> to do most of the initialization work. Basically, reading
+a file may looks like:</p>
+
+<p>```c
+struct iovec iov;
+struct uio ku;
+int err;
+char kbuf[BUF_SIZE];
+/<em> or allocate buffer using kmalloc
+ * char</em> kbuf = kmalloc(BUF_SIZE);
+ */</p>
+
+<p>uio_kinit(&amp;iov, &amp;ku, kbuf, BUF_SIZE, fdesc->offset, UIO_READ);
+if ((err = VOP_READ(fdesc->vn, &amp;ku)) != 0) {</p>
+
+<pre><code>return err;
+</code></pre>
+
+<p>}
+/<em> note how we calcuate bytes_read here </em>/
+bytes_read = BUF_SIZE - ku.uio_resid;
+fdesc->offset = ku.uio_offset;
+```</p>
+
+<p>Since we've carefully handled std files when initialization. Here we just treat
+them as normal files and pay no special attention to them.</p>
+
+<h3><code>sys_dup2</code></h3>
+
+<p>The hardest thing here is not how to write <code>sys_dup2</code>, but instead how <code>dup2</code>
+is supposed to be used. Here is a typical code snippet of how to use <code>dup2</code></p>
+
+<p>```c
+int logfd = open("logfile", O_WRONLY);</p>
+
+<p>/<em> note the sequence of parameter </em>/
+dup2(logfd, STDOUT_FILENO);
+close(logfd);</p>
+
+<p>/<em> now all print content will go to log file </em>/
+printf("Hello, OS161.\n");
+```</p>
+
+<p>We can see that in <code>dup2(oldfd, newfd)</code>:</p>
+
+<ul>
+<li><p>After <code>dup2</code>, <code>oldfd</code> and <code>newfd</code> points to the same file. But we can call
+<code>close</code> on any of them and do not influence the other.</p></li>
+<li><p>After <code>dup21</code>, all read/write to <code>newfd</code> will be actually performed on
+<code>oldfd</code>. (Of course, they points to the same file!!)</p></li>
+<li><p>If <code>newfd</code> is previous opened, it should be closed in <code>dup2</code> ( according
+to <a href="http://linux.die.net/man/2/dup2"><code>dup2</code> man page</a>).</p></li>
+</ul>
+
+
+<p>Once we're clear about these. Coding <code>sys_dup2</code> is a piece of cake. Just don't
+forget to maintain the <code>fdesc-&gt;ref_count</code> accordingly.</p>
+
+<h3><code>sys_lseek</code>, <code>sys_chdir</code> and <code>sys__getcwd</code></h3>
+
+<p>Nothing to say. Use <code>VOP_TRYSEEK</code>, <code>vfs_chidr</code> and <code>vfs_getcwd</code> respectively.
+Only one thing, if <code>SEEK_END</code> is used. use <code>VOP_STAT</code> to get the file size, as
+we did in <code>sys_open</code></p>
+
+<h3>64-bit parameter and return value in lseek</h3>
+
+<p>This is just a minor trick. Let's first see the definition of <code>lseek</code></p>
+
+<p><code>c
+off_t lseek (int fd, off_t pos, int whence)
+</code></p>
+
+<p>And from <code>$OS161_SRC/kern/include/types.h</code>, we can see that <code>off_t</code> is type-defined as
+64-bit integer (<code>i64</code>). So the question here is: how to pass 64-bit parameter
+to <code>sys_lseek</code> and how get the 64-bit return value of it.</p>
+
+<h4>Pass 64-bit argument to sys_lseek</h4>
+
+<p>From the comment in <code>$OS161_SRC/kern/arch/mips/syscall/syscall.c</code>, we can see that, <code>fd</code>
+should be in <code>$a0</code>, <code>pos</code> should be in (<code>$a2:$a3</code>) (<strong><code>$a2</code> stores high 32-bit and
+<code>$a3</code> stores low 32-bit)</strong>, and <code>whence</code> should be in <code>sp+16</code>. Here, <code>$a1</code> is not
+used due to alignment.</p>
+
+<p>So in the switch branch of <code>sys_lseek</code>, we should first pack (<code>$a2:$a3</code>) into a 64-bit
+variable, say <code>sys_pos</code>. Then we use <code>copyin</code> to copy <code>whence</code> from user stack (<code>tf-&gt;tf_sp+16</code>).</p>
+
+<p>Here is a code snippet demonstrating how to do this:</p>
+
+<h3>Get 64-bit return value of <code>sys_lseek</code></h3>
+
+<p>Also from the comment, we know that a 64-bit return value is stored in
+(<code>$v0:$v1</code>) (<code>$v0</code> stores high 32-bit and <code>$v1</code> stores low 32-bit). And note that
+after the <code>switch</code> statement, <code>retval</code> will be assigned to $v0, so here we just
+need to copy the low 32-bit of <code>sys_lseek</code>'s return value to $v1, and high
+32-bit to <code>retval</code>.</p>
+
+<p>Here is a code snippet demonstrating the above idea:
+```c
+case SYS_lseek:
+{</p>
+
+<pre><code>off_t pos = 0;
+
+/* pack (a2:a3) to pos */
+pos |= a2;
+pos &lt;&lt;= 32;
+pos |= a3;
+
+/* get whence from user stack */
+int whence;
+if ((err = copyin((const_userptr_t)(tf-&gt;tf_sp+16), &amp;whence, sizeof(whence))) != 0) {
+    break;
+}
+
+off_t ret;
+err = sys_lseek(&amp;ret, (int)tf-&gt;tf_a0, pos, whence);
+/* unpack ret to (v0:v1) */
+if (!err) {
+    retval = ret&gt;&gt;32;
+    tf-&gt;tf_v1 = ret;
+}
+break;
+</code></pre>
+
+<p>}
+```</p>
+]]></content>
+  </entry>
+  
+</feed>
