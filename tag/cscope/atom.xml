@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:cscope | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/cscope/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Using Cscope INSIDE Vim]]></title>
+    <link href="http://jhshi.me/2013/02/20/using-cscope-inside-vim/"/>
+    <updated>2013-02-20T23:35:58-05:00</updated>
+    <id>http://jhshi.me/2013/02/20/using-cscope-inside-vim</id>
+    <content type="html"><![CDATA[<p>The goal we want to accomplish here is, jumping to a function definition (maybe
+in another file,) finding out where a symbol is defined, finding out what
+function(s) call current function and what functions are called from this
+function, ALL WITHOUT LEAVING VIM.</p>
+
+<!-- more -->
+
+
+<p>First, make sure you have <code>cscope</code> installed by issuing the following command:</p>
+
+<p><code>bash
+$ cscope --version
+</code></p>
+
+<p>If bash complains "command not find", then install <code>cscope</code>. In Ubuntu, the
+command is:</p>
+
+<p><code>bash
+$ sudo apt-get install cscope
+</code></p>
+
+<p>Then, we need to generate <code>cscope</code> database. If you're dealing with C files,
+then in the root directory of the source tree, using this command:</p>
+
+<p><code>
+$ cscope -RUbq
+</code></p>
+
+<p>If you're dealing with Java files, before generating the database, we need to
+tell <code>cscope</code> tracing which files:</p>
+
+<p><code>bash
+$ find . -name *.java &gt; cscope.files
+$ cscope -RUbq
+</code></p>
+
+<p>The explanations are:</p>
+
+<p><code>
+-R: Recurse subdirectories during search for source files.
+-U: Check file time stamps. This option will update the time stamp on the database even if no files have changed.
+-b: Build the cross-reference only. We don't want the interactive mode.
+-q: Enable fast symbol lookup via an inverted index
+</code></p>
+
+<p>For more details, consult the <code>cscope</code> manual:</p>
+
+<p><code>
+$ man cscope
+</code></p>
+
+<p>After this step, several <code>cscope</code> database files will be generated. If you're
+using git or hg to manage your code, you may want to ignore them in the git/hg
+repository. Do that by adding these lines into your .gitignore/.hgignore</p>
+
+<p><code>
+cscope.*
+</code></p>
+
+<p>Then we need to tell Vim how to interact with <code>cscope</code>. Add the following lines
+into your <code>.vimrc</code>:</p>
+
+<p>```
+if has("cscope")</p>
+
+<pre><code>set csprg=/usr/bin/cscope
+set csto=0
+set cst
+set csverb
+" C symbol
+nmap &lt;C-\&gt;s :cs find s &lt;C-R&gt;=expand("&lt;cword&gt;")&lt;CR&gt;&lt;CR&gt;
+" definition
+nmap &lt;C-\&gt;g :cs find g &lt;C-R&gt;=expand("&lt;cword&gt;")&lt;CR&gt;&lt;CR&gt;
+" functions that called by this function
+nmap &lt;C-\&gt;d :cs find d &lt;C-R&gt;=expand("&lt;cword&gt;")&lt;CR&gt;&lt;CR&gt;
+" funtions that calling this function
+nmap &lt;C-\&gt;c :cs find c &lt;C-R&gt;=expand("&lt;cword&gt;")&lt;CR&gt;&lt;CR&gt;
+" test string
+nmap &lt;C-\&gt;t :cs find t &lt;C-R&gt;=expand("&lt;cword&gt;")&lt;CR&gt;&lt;CR&gt;
+" egrep pattern
+nmap &lt;C-\&gt;e :cs find e &lt;C-R&gt;=expand("&lt;cword&gt;")&lt;CR&gt;&lt;CR&gt;
+" file
+nmap &lt;C-\&gt;f :cs find f &lt;C-R&gt;=expand("&lt;cfile&gt;")&lt;CR&gt;&lt;CR&gt;
+" files #including this file
+nmap &lt;C-\&gt;i :cs find i ^&lt;C-R&gt;=expand("&lt;cfile&gt;")&lt;CR&gt;$&lt;CR&gt;
+
+" Automatically make cscope connections
+function! LoadCscope()
+    let db = findfile("cscope.out", ".;")
+    if (!empty(db))
+        let path = strpart(db, 0, match(db, "/cscope.out$"))
+        set nocscopeverbose " suppress 'duplicate connection' error
+        exe "cs add " . db . " " . path
+        set cscopeverbose
+    endif
+endfunction
+au BufEnter /* call LoadCscope()
+</code></pre>
+
+<p>endif
+```</p>
+
+<p>We're done! Now using Vim to edit a source code file. Put the cursor on a
+symbol (variable, function, etc.), First press <code>Ctrl+\</code>, then press:</p>
+
+<p><code>
+s: find all appearance of this symbol
+g: go to the definition of this symbol
+d: functions that called by this function
+c: functions that calling this function
+</code></p>
+
+<p>For more details about <code>cscope</code>, inside Vim, press <code>:h cs</code> to see the help
+message of <code>cscope</code>.</p>
+]]></content>
+  </entry>
+  
+</feed>

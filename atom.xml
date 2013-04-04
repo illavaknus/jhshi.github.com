@@ -4,7 +4,7 @@
   <title><![CDATA[Pearls in Life]]></title>
   <link href="http://jhshi.me/atom.xml" rel="self"/>
   <link href="http://jhshi.me/"/>
-  <updated>2013-04-03T20:54:16-04:00</updated>
+  <updated>2013-04-04T14:03:31-04:00</updated>
   <id>http://jhshi.me/</id>
   <author>
     <name><![CDATA[Jinghao Shi]]></name>
@@ -190,6 +190,296 @@ here.</p>
   </entry>
   
   <entry>
+    <title type="html"><![CDATA[Eclim E218 When Open a File in New Tab]]></title>
+    <link href="http://jhshi.me/2013/02/26/eclim-e218-when-open-a-file-in-new-tab/"/>
+    <updated>2013-02-26T02:24:45-05:00</updated>
+    <id>http://jhshi.me/2013/02/26/eclim-e218-when-open-a-file-in-new-tab</id>
+    <content type="html"><![CDATA[<p>In the directory sub window, when I use <code>T</code> to open a file in new tab, the
+following error message will occur:</p>
+
+<!-- more -->
+
+
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>No matching autocommands
+</span><span class='line'>Error detected while processing function eclim#project#tree#ProjectTree..eclim#project#tree#ProjectTreeOpen..eclim#display#window#VerticalToolWindowOpen:
+</span><span class='line'>line 78:
+</span><span class='line'>E218: autocommand nesting too deep
+</span><span class='line'>Error detected while processing function 53_OpenFile..eclim#tree#ExecuteAction:
+</span><span class='line'>line 12:
+</span><span class='line'>E171: Missing :endif
+</span><span class='line'>Error detected while processing function 53_OpenFile:
+</span><span class='line'>line 8:
+</span><span class='line'>E171: Missing :endif</span></code></pre></td></tr></table></div></figure>
+
+
+<p>To fix this, apply the following patch to <code>$HOME/.vim/eclim/plugin/project.vim</code>
+described in <a href="https://github.com/ervandew/eclim/commit/597aeb31fa4ea1e2c102547871935dbb89cf9202">here</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Using Cscope INSIDE Vim]]></title>
+    <link href="http://jhshi.me/2013/02/20/using-cscope-inside-vim/"/>
+    <updated>2013-02-20T23:35:58-05:00</updated>
+    <id>http://jhshi.me/2013/02/20/using-cscope-inside-vim</id>
+    <content type="html"><![CDATA[<p>The goal we want to accomplish here is, jumping to a function definition (maybe
+in another file,) finding out where a symbol is defined, finding out what
+function(s) call current function and what functions are called from this
+function, ALL WITHOUT LEAVING VIM.</p>
+
+<!-- more -->
+
+
+<p>First, make sure you have <code>cscope</code> installed by issuing the following command:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>cscope --version
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If bash complains &#8220;command not find&#8221;, then install <code>cscope</code>. In Ubuntu, the
+command is:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>sudo apt-get install cscope
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then, we need to generate <code>cscope</code> database. If you&#8217;re dealing with C files,
+then in the root directory of the source tree, using this command:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>cscope -RUbq
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If you&#8217;re dealing with Java files, before generating the database, we need to
+tell <code>cscope</code> tracing which files:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>find . -name *.java &gt; cscope.files
+</span><span class='line'><span class="nv">$ </span>cscope -RUbq
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The explanations are:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>-R: Recurse subdirectories during search <span class="k">for </span><span class="nb">source </span>files.
+</span><span class='line'>-U: Check file <span class="nb">time </span>stamps. This option will update the <span class="nb">time </span>stamp on the database even <span class="k">if </span>no files have changed.
+</span><span class='line'>-b: Build the cross-reference only. We don<span class="err">&#39;</span>t want the interactive mode.
+</span><span class='line'>-q: Enable fast symbol lookup via an inverted index
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>For more details, consult the <code>cscope</code> manual:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>man cscope
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>After this step, several <code>cscope</code> database files will be generated. If you&#8217;re
+using git or hg to manage your code, you may want to ignore them in the git/hg
+repository. Do that by adding these lines into your .gitignore/.hgignore</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>cscope.*
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then we need to tell Vim how to interact with <code>cscope</code>. Add the following lines
+into your <code>.vimrc</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="k">if </span>has<span class="o">(</span><span class="s2">&quot;cscope&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="nb">set </span><span class="nv">csprg</span><span class="o">=</span>/usr/bin/cscope
+</span><span class='line'>    <span class="nb">set </span><span class="nv">csto</span><span class="o">=</span>0
+</span><span class='line'>    <span class="nb">set </span>cst
+</span><span class='line'>    <span class="nb">set </span>csverb
+</span><span class='line'>    <span class="s2">&quot; C symbol</span>
+</span><span class='line'><span class="s2">    nmap &lt;C-\&gt;s :cs find s &lt;C-R&gt;=expand(&quot;</span>&lt;cword&gt;<span class="s2">&quot;)&lt;CR&gt;&lt;CR&gt;</span>
+</span><span class='line'><span class="s2">    &quot;</span> definition
+</span><span class='line'>    nmap &lt;C-<span class="se">\&gt;</span>g :cs find g &lt;C-R&gt;<span class="o">=</span>expand<span class="o">(</span><span class="s2">&quot;&lt;cword&gt;&quot;</span><span class="o">)</span>&lt;CR&gt;&lt;CR&gt;
+</span><span class='line'>    <span class="s2">&quot; functions that called by this function</span>
+</span><span class='line'><span class="s2">    nmap &lt;C-\&gt;d :cs find d &lt;C-R&gt;=expand(&quot;</span>&lt;cword&gt;<span class="s2">&quot;)&lt;CR&gt;&lt;CR&gt;</span>
+</span><span class='line'><span class="s2">    &quot;</span> funtions that calling this <span class="k">function</span>
+</span><span class='line'><span class="k">    </span>nmap &lt;C-<span class="se">\&gt;</span>c :cs find c &lt;C-R&gt;<span class="o">=</span>expand<span class="o">(</span><span class="s2">&quot;&lt;cword&gt;&quot;</span><span class="o">)</span>&lt;CR&gt;&lt;CR&gt;
+</span><span class='line'>    <span class="s2">&quot; test string</span>
+</span><span class='line'><span class="s2">    nmap &lt;C-\&gt;t :cs find t &lt;C-R&gt;=expand(&quot;</span>&lt;cword&gt;<span class="s2">&quot;)&lt;CR&gt;&lt;CR&gt;</span>
+</span><span class='line'><span class="s2">    &quot;</span> egrep pattern
+</span><span class='line'>    nmap &lt;C-<span class="se">\&gt;</span>e :cs find e &lt;C-R&gt;<span class="o">=</span>expand<span class="o">(</span><span class="s2">&quot;&lt;cword&gt;&quot;</span><span class="o">)</span>&lt;CR&gt;&lt;CR&gt;
+</span><span class='line'>    <span class="s2">&quot; file</span>
+</span><span class='line'><span class="s2">    nmap &lt;C-\&gt;f :cs find f &lt;C-R&gt;=expand(&quot;</span>&lt;cfile&gt;<span class="s2">&quot;)&lt;CR&gt;&lt;CR&gt;</span>
+</span><span class='line'><span class="s2">    &quot;</span> files <span class="c">#including this file</span>
+</span><span class='line'>    nmap &lt;C-<span class="se">\&gt;</span>i :cs find i ^&lt;C-R&gt;<span class="o">=</span>expand<span class="o">(</span><span class="s2">&quot;&lt;cfile&gt;&quot;</span><span class="o">)</span>&lt;CR&gt;<span class="nv">$&lt;</span>CR&gt;
+</span><span class='line'>
+</span><span class='line'>    <span class="s2">&quot; Automatically make cscope connections</span>
+</span><span class='line'><span class="s2">    function! LoadCscope()</span>
+</span><span class='line'><span class="s2">        let db = findfile(&quot;</span>cscope.out<span class="s2">&quot;, &quot;</span>.;<span class="s2">&quot;)</span>
+</span><span class='line'><span class="s2">        if (!empty(db))</span>
+</span><span class='line'><span class="s2">            let path = strpart(db, 0, match(db, &quot;</span>/cscope.out<span class="s2">$&quot;))</span>
+</span><span class='line'><span class="s2">            set nocscopeverbose &quot;</span> suppress <span class="s1">&#39;duplicate connection&#39;</span> error
+</span><span class='line'>            exe <span class="s2">&quot;cs add &quot;</span> . db . <span class="s2">&quot; &quot;</span> . path
+</span><span class='line'>            <span class="nb">set </span>cscopeverbose
+</span><span class='line'>        endif
+</span><span class='line'>    endfunction
+</span><span class='line'>    au BufEnter /* call LoadCscope<span class="o">()</span>
+</span><span class='line'>
+</span><span class='line'>endif
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We&#8217;re done! Now using Vim to edit a source code file. Put the cursor on a
+symbol (variable, function, etc.), First press <code>Ctrl+\</code>, then press:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>s: find all appearance of this symbol
+</span><span class='line'>g: go to the definition of this symbol
+</span><span class='line'>d: functions that called by this <span class="k">function</span>
+</span><span class='line'>c: functions that calling this <span class="k">function</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>For more details about <code>cscope</code>, inside Vim, press <code>:h cs</code> to see the help
+message of <code>cscope</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[LFS 6.9.1: command substitution: line 3: syntax error near unexpected token  `)']]></title>
+    <link href="http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token/"/>
+    <updated>2012-09-18T14:57:23-04:00</updated>
+    <id>http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token</id>
+    <content type="html"><![CDATA[<p>I encountered this error when compiling glibc. The apparent cause is that
+bash can not deal with brackets correctly. So even a simple command like echo
+<code>$(ls)</code> will fail with the same error (command substitution).</p>
+
+<!-- more -->
+
+
+<p>The most suspicious cause is that when compile bash in section 5.15.1, I use
+<code>byacc</code> for walk around when the compiler complained the absence of <code>yacc</code>. <strong>Bash
+uses yacc grammer rules and only GNU bison will generate the correct parsing
+code for the bash build</strong>. So I un-installed byacc and installed bison. Then</p>
+
+<ul>
+<li><p>Make a soft link at <code>/usr/bin/yacc</code> to bison</p></li>
+<li><p>Recompile all the package after 5.10 (tcl) and before 5.15 (include 5.15)</p></li>
+<li><p>Test if problem solved using echo <code>$(ls)</code> command</p></li>
+<li><p>If yes, then using <code>/tools/bin/bash --login +h</code> to lunch the new bash</p></li>
+</ul>
+
+
+<p>Also see:</p>
+
+<ul>
+<li><a href="http://www.mail-archive.com/lfs-support@linuxfromscratch.org/msg16549.html">http://www.mail-archive.com/lfs-support@linuxfromscratch.org/msg16549.html</a></li>
+<li><a href="http://unix.stackexchange.com/questions/28369/linux-from-scratchs-bash-problem-syntax-error">http://unix.stackexchange.com/questions/28369/linux-from-scratchs-bash-problem-syntax-error</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[LFS 5.5.1: Change GCC's Stack Protection Option]]></title>
+    <link href="http://jhshi.me/2012/09/08/change-gccs-stack-protection-option-in-lfs/"/>
+    <updated>2012-09-08T11:39:27-04:00</updated>
+    <id>http://jhshi.me/2012/09/08/change-gccs-stack-protection-option-in-lfs</id>
+    <content type="html"><![CDATA[<p>In <a href="http://www.linuxfromscratch.org/lfs/view/stable/chapter05/gcc-pass1.html">Chapter 5.5</a>, there is one step that fixes the GCC&#8217;s stack protection
+detection problem. The command is:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>sed -i <span class="s1">&#39;/k prot/agcc_cv_libc_provides_ssp=yes&#39;</span> gcc/configure
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<!-- more -->
+
+
+<p>This command seems weird to me at first glance. After digging a little more
+about <code>sed</code> command, it&#8217;s intention is much clear.</p>
+
+<ul>
+<li><p><strong>-i</strong> means change the file (i.e., <code>gcc/configure</code>) in place</p></li>
+<li><p><strong>/k prot/</strong> is the pattern. If you look at <code>gcc/configure</code>, you&#8217;ll find a
+line (around 26695) of comment that says:</p></li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c"># Test for stack protector support in target C library</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And you&#8217;ll see that this is the only occurrence of &#8220;stack protector&#8221; (as well
+as <code>k prot</code>. I think we&#8217;d better use <code>/stack protector/</code> as the pattern for
+easy understanding.</p>
+
+<ul>
+<li><p><strong>a</strong> means append a line after the line that contains the pattern. (<a href="http://www.grymoire.com/Unix/Sed.html#uh-40">sed document</a>)</p></li>
+<li><p><strong>gcc_cv_libc_provides_ssp=yes</strong> is the actual line being appended.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Use rsync and cron to do regular backup (Part II)]]></title>
     <link href="http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-ii/"/>
     <updated>2012-07-11T12:53:52-04:00</updated>
@@ -352,6 +642,223 @@ desirable.</p>
 
 <p>Now that after the first time rsync, the following rsync commands will only
 transfer the file changes to local, which is a great save of the bandwidth.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Dropbox: Unable to monitor filesystem]]></title>
+    <link href="http://jhshi.me/2012/07/11/dropbox-unable-to-monitor-filesystem/"/>
+    <updated>2012-07-11T11:39:14-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/dropbox-unable-to-monitor-filesystem</id>
+    <content type="html"><![CDATA[<p>Sometime this error occurs that says:</p>
+
+<blockquote><p>&#8220;Unable to monitor file system. Please run: echo 100000 | sudo tee
+/proc/sys/fs/inotify/max_user_watches and restart Dropbox to correct the
+problem.</p></blockquote>
+
+<!-- more -->
+
+
+<p>We need to adjust the system setting on the maximum file number that Dropbox
+can watch.</p>
+
+<p>The following command will solve your pain:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span><span class="nb">echo </span>fs.inotify.max_user_watches<span class="o">=</span>100000 | sudo tee -a /etc/sysctl.conf; sudo sysctl -p
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here is the tip from Dropbox website.</p>
+
+<p><a href="https://www.dropbox.com/help/145/en](https://www.dropbox.com/help/145/en">https://www.dropbox.com/help/145/en](https://www.dropbox.com/help/145/en</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ssh error: Agent admitted failure to sign using the key]]></title>
+    <link href="http://jhshi.me/2012/07/11/ssh-error-agent-admitted-failure-to-sign-using-the-key/"/>
+    <updated>2012-07-11T10:37:38-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/ssh-error-agent-admitted-failure-to-sign-using-the-key</id>
+    <content type="html"><![CDATA[<p>If you follow <a href="http://jhshi.me/2012/04/27/sshscp-without-password/">my previous post about ssh/scp without password</a>, but you
+got this error when you try to ssh to B on A, then you need to add RSA or DSA
+identities to the authentication agent. A ssh-add command on host A will solve
+your pain.</p>
+
+<!-- more -->
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>ssh-add
+</span><span class='line'><span class="c"># Sample output</span>
+</span><span class='line'>Identity added: /home/jack/.ssh/id_rsa <span class="o">(</span>/home/jack/.ssh/id_rsa<span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><strong>Reference</strong></p>
+
+<p><a href="http://www.cyberciti.biz/faq/unix-appleosx-linux-bsd-agent-admitted-failuretosignusingkey/">http://www.cyberciti.biz/faq/unix-appleosx-linux-bsd-agent-admitted-failuretosignusingkey/</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Specify graphics path in Latex]]></title>
+    <link href="http://jhshi.me/2012/06/22/specify-graphicspath-in-latex/"/>
+    <updated>2012-06-22T09:34:33-04:00</updated>
+    <id>http://jhshi.me/2012/06/22/specify-graphicspath-in-latex</id>
+    <content type="html"><![CDATA[<p>We can use the <code>graphicx</code> package together with the <code>graphicspath</code> command to
+specify the looking up path for pictures. A typical structure may look like
+this:</p>
+
+<!-- more -->
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='latex'><span class='line'><span class="k">\usepackage</span><span class="nb">{</span>graphicx<span class="nb">}</span>
+</span><span class='line'><span class="c">% Must use this command BEFORE you begin document!</span>
+</span><span class='line'><span class="k">\graphicspath</span><span class="nb">{{</span>pic<span class="nb">_</span>path1/<span class="nb">}{</span>pic<span class="nb">_</span>path2<span class="nb">}}</span>
+</span><span class='line'><span class="k">\begin</span><span class="nb">{</span>document<span class="nb">}</span>
+</span><span class='line'><span class="c">% some content</span>
+</span><span class='line'><span class="k">\end</span><span class="nb">{</span>document<span class="nb">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you can see, the syntax of <code>graphicspath</code> command is very simple. You just
+enclose your picture path, either relative to current work path, or absolute
+path, in a pair of curly braces. Note that you must place this command before
+you begin document otherwise it will take no effect.</p>
+
+<p>Please refer to <a href="http://www.tex.ac.uk/cgi-bin/texfaq2html?label=graphicspath">this page</a> for more details about <code>graphicspath</code> command.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Use trap to Do Cleanup Work When Script Terminates]]></title>
+    <link href="http://jhshi.me/2012/05/07/use-trap-to-do-cleanup-work-when-script-terninates/"/>
+    <updated>2012-05-07T15:08:56-04:00</updated>
+    <id>http://jhshi.me/2012/05/07/use-trap-to-do-cleanup-work-when-script-terninates</id>
+    <content type="html"><![CDATA[<p>Now I have the script that monitoring the output of several UART devices:</p>
+
+<!-- more -->
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="c">#!/bin/bash</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">for </span>i in <span class="sb">`</span>seq 0 7<span class="sb">`</span>; <span class="k">do</span>
+</span><span class='line'><span class="c"># use grep here to enforce line-buffered output, so concurrent</span>
+</span><span class='line'><span class="c"># input from UART isn&#39;t messed up</span>
+</span><span class='line'>    cat /dev/crbif0rb0c<span class="k">${</span><span class="nv">i</span><span class="k">}</span>ttyS0 | grep ^ --line-buffered &amp;
+</span><span class='line'><span class="k">done</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">wait</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But there is one problem, when you terminate the script (<code>ctrl+c</code>), these cat
+processes won&#8217;t be killed, so that the next time you run this script, you&#8217;ll not
+be able to access these UART device since they are busy.</p>
+
+<p>To solve this problem, we need to do some cleanup work when the script
+terminates. In this case, we need to kill these <code>cat</code> processes. We can use the
+<code>trap</code> command to do this. Basically, <strong>trap enables you to register a kind of
+handler for different kind of signals</strong>.</p>
+
+<p>In this case, we can add a line into the script:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nb">trap</span> <span class="s2">&quot;pkill -P $$&quot;</span> SIGINT
+</span><span class='line'>
+</span><span class='line'><span class="k">for </span>i in <span class="sb">`</span>seq 0 7<span class="sb">`</span>; <span class="k">do</span>
+</span><span class='line'><span class="c"># use grep here to enforce line-buffered output, so concurrent</span>
+</span><span class='line'><span class="c"># input from UART isn&#39;t messed up</span>
+</span><span class='line'>    cat /dev/crbif0rb0c<span class="k">${</span><span class="nv">i</span><span class="k">}</span>ttyS0 | grep ^ --line-buffered &amp;
+</span><span class='line'><span class="k">done</span>
+</span><span class='line'>
+</span><span class='line'><span class="nb">wait</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>$$</code> is the process id of the script. <code>pkill -P $$</code> will kill all the child
+processes of <code>$$</code>. So that when the script terminates (<code>SIGINT</code> signal from
+<code>ctrl+c</code>), this <code>pkill</code> command will be executed and all the cat processes will
+be killed.</p>
+
+<p>Thanks to these post.</p>
+
+<ul>
+<li><a href="http://steve-parker.org/sh/trap.shtml">http://steve-parker.org/sh/trap.shtml</a></li>
+<li><a href="http://www.davidpashley.com/articles/writing-robust-shell-scripts.html#id2564782">http://www.davidpashley.com/articles/writing-robust-shell-scripts.html#id2564782</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Line Buffered Cat]]></title>
+    <link href="http://jhshi.me/2012/05/04/line-buffered-cat/"/>
+    <updated>2012-05-04T10:44:15-04:00</updated>
+    <id>http://jhshi.me/2012/05/04/line-buffered-cat</id>
+    <content type="html"><![CDATA[<p>I&#8217;d like to watch the output of a UART device in Linux, and I only want to see
+the content when there are a whole line. So I prefer some kind of line-buffered
+cat such as:</p>
+
+<!-- more -->
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>cat --line-buffered /dev/crbif0rb0c0ttyS0
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But unfortunately, <code>cat</code> doesn&#8217;t have a line-buffered option. And fortunately,
+GNU <code>grep</code> has such an option. So we can do</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>cat /dev/crbif0rb0c0ttyS0 | grep ^ --line-buffered
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since every line has a ^ (line start), so each line matches the <code>grep</code>. Note
+that I ever tried</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nv">$ </span>cat /dev/crbif0rb0c0ttyS0 | grep . --line-buffered
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>But this does not work. Only empty lines are printed, and I don&#8217;t know why&#8230;</p>
 ]]></content>
   </entry>
   
@@ -821,962 +1328,6 @@ without entering password.</p>
 <li><p><a href="http://www.cyberciti.biz/faq/ssh-password-less-login-with-dsa-publickey-authentication/">http://www.cyberciti.biz/faq/ssh-password-less-login-with-dsa-publickey-authentication/</a></p></li>
 <li><p><a href="http://www.linuxproblem.org/art_9.html">http://www.linuxproblem.org/art_9.html</a></p></li>
 </ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 User Address Space]]></title>
-    <link href="http://jhshi.me/2012/04/24/os161-user-address-space/"/>
-    <updated>2012-04-24T19:14:14-04:00</updated>
-    <id>http://jhshi.me/2012/04/24/os161-user-address-space</id>
-    <content type="html"><![CDATA[<p>Now we&#8217;ve set up our coremap and also have the routines to allocate and free
-physical pages. It&#8217;s the time to set up user&#8217;s virtual address space.</p>
-
-<p>Basically, we&#8217;ll adopt <strong>two-level page table</strong>. If you&#8217;re not
-already familiar with this, you can check out the <a href="http://en.wikipedia.org/wiki/Page_table">page table wiki</a>
-and <a href="http://pages.cs.wisc.edu/~remzi/OSFEP/vm-tlbs.pdf">this document talking about MIPS and X86 paging</a>.</p>
-
-<!-- more -->
-
-
-<p>The page table entry format will be much alike those in X86. For a page
-directory entry, the upper 20 bits indicates the base physical address of the
-page table, and <strong>we use one bit in the lower 12 bits to indicate whether this
-page table exist or not</strong>. For a page table entry, the upper 20 bits stores
-the base physical address of the actual page, while the lower 12 bits contain
-some attribute of this page, e.g., readable, writable, executable, etc. You are
-free to define all these (format of page directory and page table entry)
-though, since the addressing process are totally done by software in MIPS, but
-following the conventions is still better for compatibility as well as easy
-programming.</p>
-
-<h3>What to store in the <code>addrspace</code> structure?</h3>
-
-<p><strong>An address space is actually just a page directory</strong>: we can use this
-directory and page table to translate all the addresses inside the address
-space. And we also need to keep some other information like user heap start,
-user heap end, etc. But that&#8217;s all, and no more.</p>
-
-<p>So in <code>as_create</code>, we just allocate a <code>addrspace</code> structure using <code>kmalloc</code>,
-and allocate a physical page (using <code>page_alloc</code>) as page directory and store
-it&#8217;s address (either <code>KVADDR</code> or <code>PADDR</code> is OK, but you can just choose one).</p>
-
-<p>Besides, we need to record somewhere in the <code>addrspace</code> structure the valid
-regions user defined using <code>as_define_region</code>, since we&#8217;re going to need that
-information during page fault handing to check whether the faulted address is
-valid or not.</p>
-
-<h3>Address Translating with <code>pgdir_walk</code></h3>
-
-<p><strong>This is another most important and core function in this lab.</strong> Basically,
-given an address space and virtual address, we want to find the corresponding
-physical address. This is what <code>pgdir_walk</code> does. We first extract the page
-directory index (top 10 bits) from the <code>va</code> and use it to index the page
-directory, thus we get the base physical address of the page table. Then we
-extract the page table index (middle 10 bits) from <code>va</code> and use it to index the
-page directory, thus we get the base physical address of the actual page.</p>
-
-<p>Several points to note:</p>
-
-<ul>
-<li><p>Instead of return the physical address, <strong>you may want to return the page
-table entry pointer</strong> instead. Since in most cases, we use <code>pgdir_walk</code> to get
-page table entries and modify it</p></li>
-<li><p>We&#8217;ll also need to pass <code>pgdir_walk</code> a flag, indicating that whether we want
-to create a page table if non-exist (remember the <strong>present bit</strong> of page
-directory entry?). Since sometimes, we want to make sure that a <code>va</code> is mapped to
-a physical page when calling <code>pgdir_walk</code>. But most of the time, we just want to
-query if a <code>va</code> is mapped.</p></li>
-<li><p>Think clearly about which is physical address, and which is virtual
-address. Page directory entry and page table entry should store the physical
-address base. You&#8217;ll need a lot <code>PADDR_TO_KVADDR</code> here.</p></li>
-</ul>
-
-
-<h3>Copy address space using <code>as_copy</code></h3>
-
-<p>This part is easy if you decide not support Copy-On-Write pages. Basically, you
-just <code>pgdir_walk</code> old address space&#8217;s page table, and copy all the present pages.
-Only one point, don&#8217;t forget to <strong>copy all the attribute bits (low 12 bits) of
-the old page table entry</strong>.</p>
-
-<p>You&#8217;ll get some extra work when you enable swapping: you need to copy all the
-swapped pages beside present pages as well.</p>
-
-<h4>Destroy address space with <code>as_destroy</code></h4>
-
-<p>Same easy as <code>as_copy</code>, just <code>pgdir_walk</code> the page table and free all the present
-pages. Also same with <code>as_copy</code>, you need to free the swapped pages latter</p>
-
-<h3>Define regions using <code>as_define_region</code></h3>
-
-<p>Since we&#8217;ll do <strong>on-demand paging</strong>, so we won&#8217;t allocate any pages in
-<code>as_define_region</code> Instead, we just walk through the
-page table, and set the attribute bits accordingly. One point, remember the
-<code>heap_start</code> and <code>heap_end</code> field in <code>struct addrspace</code>? Question: <strong>where should
-user heap start? Immediately after user bss segment!</strong> And how would we know the
-end of user bss segment? In <code>as_define_region</code>! So each time in <code>as_define_region</code>,
-we just compare addrspace&#8217;s current hew<code>and the region end, and set
-the</code>heap_start<code>right after (</code>vaddr+sz<code>). Don't forget to **proper align the
-</code>heap_start`(by page bound)**, of course.</p>
-
-<p>This should also be the place we record each region information (e.g., base,
-size, permission, etc) so that we can check them in <code>vm_fault</code>.</p>
-
-<p><img class="center" src="http://jhshi.me/images/2012-04-24-mips-as1.png"></p>
-
-<h3>Miscellaneous</h3>
-
-<p>In <code>as_activate</code>, if you don&#8217;t use the ASID field of TLB entry, then you can just
-shoot down all the tlb entries. It&#8217;s the easiest to way to go.</p>
-
-<p>In <code>as_prepare_load</code>, we need to change each regions&#8217; page table permision as read-write
-since we&#8217;re going to load content (code, date) into them. And in
-<code>as_complete_load</code>, we need to change their page table permissions back to
-whatever the original value.</p>
-
-<p>In <code>as_define_stack</code>, we just return <code>USERSTACKTOP</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 Physical Page Management]]></title>
-    <link href="http://jhshi.me/2012/04/24/os161-physical-page-management/"/>
-    <updated>2012-04-24T18:11:05-04:00</updated>
-    <id>http://jhshi.me/2012/04/24/os161-physical-page-management</id>
-    <content type="html"><![CDATA[<p>We&#8217;ll talk about <code>page_alloc</code>, <code>page_free</code>, <code>alloc_kpages</code> and <code>free_kpages</code>.</p>
-
-<!-- more -->
-
-
-<h3>Allocate one single physical page with <code>page_alloc</code></h3>
-
-<p>This is relatively easy once you&#8217;ve decided which paging algorithm to use. FIFO
-seems good enough in in terms of simplicity as well as acceptable performance.
-We just scan the coremap, find out if there is any FREE page, or find out the
-oldest page. At this stage (before swapping), I will use a magic function
-called <code>MAKE_PAGE_AVAIL</code>, which obviously makes a page available, by flushing or
-swapping, we don&#8217;t care :-). Once we find a victim (maybe free, clean, or
-dirty, but <strong>must not be fixed</strong>), we call <code>MAKE_PAGE_AVAIL</code> on it, and update
-it&#8217;s internal fields like time stamp, <code>as</code>, <code>va</code>, etc. And don&#8217;t forget to zero the
-page before we return.</p>
-
-<p>A trade-off here is what parameters should we pass to <code>page_alloc</code>? One
-choice is nothing: I just tell you to give me a page, and I&#8217;ll deal with
-the page meta-info by myself. But this manner will probably cause page-info
-inconsistency, e.g., caller forget to set page&#8217;s state. So to avoid this case,
-I prefer caller tell <code>page_alloc</code> all he needs, like <code>as</code>, <code>va</code>, whether the
-allocate page need to keep in memory, etc. And let <code>page_alloc</code> set the page&#8217;s
-meta info accordingly.</p>
-
-<p>BTW, since coremap is a globally share data structure, so <strong>you really want to
-use lock to protect it every time you read/write it.</strong></p>
-
-<h3>Allocate n continuous pages with <code>page_nalloc</code></h3>
-
-<p>Since kernel address will bypass TLB and are directly-mapped. (See
-<a href="http://www.eecs.harvard.edu/~mdw/course/cs161/handouts/mips.html#segments">this</a> and <a href="http://cgi.cse.unsw.edu.au/~cs3231/10s1/os161/man/sys161/mips.html">this</a> for details), when we&#8217;re asked to allocate
-n (where n > 1) pages by <code>alloc_kpages</code>, we must <strong>allocate n continuous pages</strong>!
-To do this, we need to first find a chunk of n available (i.e., not fixed) continuous
-pages, and then call <code>MAKE_PAGE_AVAILABLE</code> on these pages. Like <code>page_alloc</code>, we
-also need to update the coremap and zero the allocated memory.</p>
-
-<p>As mentioned in <a href="http://jhshi.me/2012-04-24-os161-coremap">my previous blog about coremap</a>, in <code>alloc_kpages</code>,
-<strong>we need to first check whether vm has bootstrapped</strong>: if not, we just use
-<code>get_ppages</code>, otherwise, we use our powerful <code>page_nalloc</code>.</p>
-
-<p>Also, we need to record how many pages we allocated so that when calling <code>free_kpages</code>,
-we can free all these <code>npages</code>page.</p>
-
-<h3>Free a page with <code>page_free</code> and <code>free_kpages</code></h3>
-
-<p>We just need to mark this page as FREE. But if this page was mapped to user
-address space (<code>page-&gt;as != NULL</code>), then we need first unmap it, and shoot down
-the TLB entry if needed. We&#8217;ll talk about user address space management lately.</p>
-
-<p>Only one tip for this part, <strong>do not forget to protect every access to coremap
-using lock (but not spinlock).</strong></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 Coremap]]></title>
-    <link href="http://jhshi.me/2012/04/24/os161-coremap/"/>
-    <updated>2012-04-24T17:35:28-04:00</updated>
-    <id>http://jhshi.me/2012/04/24/os161-coremap</id>
-    <content type="html"><![CDATA[<p>The first concern of OS161 virtual memory system is how to manage physical
-pages. Generally, we can pack a physical page&#8217;s information into a structure
-(called <code>struct page</code>) and <strong>use this struct to represent a physical page</strong>.
-<strong>We use an array of <code>struct page</code> to keep all physical pages information.</strong>
-This array, aka, <strong>coremap</strong>, will be the most important data structure in this lab.</p>
-
-<!-- more -->
-
-
-<h3>What should we store in page structure?</h3>
-
-<p>For each physical page, we want to know:</p>
-
-<ul>
-<li><p>Where is this page mapped?</p></li>
-<li><p>What&#8217;s this pages status? (free, clean, dirty&#8230;)</p></li>
-<li><p>Other info (e.g. need by paging algorithm)</p></li>
-</ul>
-
-
-<p>So the definition of <code>struct page</code> may look like this:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>struct page { 
-</span><span class='line'>    /* where is paged mapped to */
-</span><span class='line'>    struct addrspace* as; 
-</span><span class='line'>    vaddr_t va;
-</span><span class='line'>
-</span><span class='line'>    /* page state */ 
-</span><span class='line'>    page_state_t state;
-</span><span class='line'>
-</span><span class='line'>    /* for paging algorithm 
-</span><span class='line'>     * I use FIFO paging, so a timestamp will be suffice    
-</span><span class='line'>     */
-</span><span class='line'>    uint64_t timestamp; 
-</span><span class='line'>};</span></code></pre></td></tr></table></div></figure>
-
-
-<p>A page can have for different states, as shown below.</p>
-
-<p><img class="center" src="http://jhshi.me/images/2012-04-24-page-state.png"></p>
-
-<p>This diagram is quite clear. Several points though:</p>
-
-<ul>
-<li><p>Once a physical page is allocated, its state is DIRTY, not CLEAN. Since this
-page do not have a copy in swap file (disk). Remember that in a virtual memory
-system, memory is just a cache of disk.</p></li>
-<li><p>For some reason, we may want to always keep a certain page in memory, e.g.</p>
-
-<ul>
-<li>kernel pages, since these pages are direct mapped</li>
-<li>user stack and code segment pages which we already knew will be frequently accessed.</li>
-</ul>
-
-
-<p>So we have a special state called &#8220;fixed&#8221;, means that <strong>we&#8217;ll never swap out these
-pages to disk</strong>.</p></li>
-</ul>
-
-
-<h3>Coremap Initialization</h3>
-
-<p>We need to initiate our coremap in <code>vm_bootstrap</code>. First, we need to find out
-how many physical pages in system. We can do this using <code>ram_getsize</code>. There
-is a big trick here. Since we will only know the physical page number, i.e.
-coremap array length at runtime, so we&#8217;d better just define a <code>struct page</code>
-pointer and allocate the actually array at runtime after we got the physical
-page number, rather than use a statically defined array with some MACRO like
-<code>MAX_PHY_PAGE_NUM</code>. So at first glance, we may write:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>paddr_t firstaddr, lastaddr; 
-</span><span class='line'>ram_getsize(&firstaddr, &lastaddr); 
-</span><span class='line'>page_num = ROUNDDOWN(lastaddr, PAGE_SIZE) / PAGE_SIZE; 
-</span><span class='line'>pages =(struct page*) kmalloc(page_num * sizeof(struct page)); </span></code></pre></td></tr></table></div></figure>
-
-
-<p><strong>But the above code will definitly fail</strong>.</p>
-
-<p>Take a look at <code>ram_getsize</code>,
-we can see that this function will destroy its <code>firstaddr</code> and <code>lastaddr</code>
-before return. So after that, if we call <code>kmalloc</code>, which call <code>alloc_kpage</code>,
-<code>get_ppages</code> and <code>ram_stealmem</code> to get memory, <code>ram_stealmem</code> will fail. The
-contradiction is: <strong>we need to call <code>ram_getsize</code> to get physical page number
-so that we can allocate our coremap(<code>pages</code>), but once we call <code>ram_getsize</code> we
-will not be able allocate any pages!</strong></p>
-
-<p>To resolve this contradiction, on one hand, we should <strong>initialize all other
-data structures, e.g., locks, before we call <code>ram_getsize</code></strong>. Then we call
-<code>ram_getsize</code> to get <code>firstaddr</code> and <code>lastaddr</code>. After that, instead of using
-<code>kmalloc</code>, we must <strong>allocate our coremap manually</strong>, without invoking any
-other malloc routines. A possible solution may be:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>ram_getsize(&firstaddr, &lastaddr); 
-</span><span class='line'>page_num = ROUNDDOWN(lastaddr, PAGE_SIZE) / PAGE_SIZE; 
-</span><span class='line'>/* pages should be a kernel virtual address !!  */
-</span><span class='line'>pages = (struct page*)PADDR_TO_KVADDR(firstaddr); 
-</span><span class='line'>freeaddr = firstaddr + page_num * sizeof(struct page); </span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now we allocated our core map just between <code>firstaddr</code> and <code>freeaddr</code>, and
-[<code>freeaddr</code>, <code>lastaddr</code>] will be system&#8217;s free memory.</p>
-
-<p>Then we initialize the <code>pages</code> array, we need to mark any pages between [0,
-<code>freeaddr</code>) as fixed, since this memory contains important kernel code and
-data, or memory mapped I/Os. And we just mark pages between [<code>freeaddr</code>,
-<code>astaddr</code>] as free.</p>
-
-<p>At the end of <code>vm_bootstrap</code>, we may want to <strong>set some flags to indicate that
-vm has already bootstrapped,</strong> since functions like <code>alloc_kpages</code> may call
-different routines to get physical page before and after <code>vm_bootstrap</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 Virtual Memory Resources]]></title>
-    <link href="http://jhshi.me/2012/04/19/os161-virtual-memory-resources/"/>
-    <updated>2012-04-19T14:29:56-04:00</updated>
-    <id>http://jhshi.me/2012/04/19/os161-virtual-memory-resources</id>
-    <content type="html"><![CDATA[<p>Here are various documents that I found helpful for implementing OS161 virtual
-memory system.</p>
-
-<!-- more -->
-
-
-<p>These are two other blogs that also talking about VM of OS161:</p>
-
-<ul>
-<li><a href="http://asmarkhalid.blogspot.com/">http://asmarkhalid.blogspot.com/</a></li>
-<li><a href="http://flounderingz.blogspot.com/">http://flounderingz.blogspot.com/</a></li>
-</ul>
-
-
-<p>A very good document introducing MIPS TLB:</p>
-
-<p><a href="http://pages.cs.wisc.edu/~remzi/OSFEP/vm-tlbs.pdf">http://pages.cs.wisc.edu/~remzi/OSFEP/vm-tlbs.pdf</a></p>
-
-<p>Lecture notes about MIPS TLB and paging.</p>
-
-<ul>
-<li><a href="http://frankdrews.com/public_filetree/cs458_558_SQ10/Slides/mm.pdf">http://frankdrews.com/public_filetree/cs458_558_SQ10/Slides/mm.pdf</a></li>
-<li><a href="http://people.csail.mit.edu/rinard/osnotes/h11.html">http://people.csail.mit.edu/rinard/osnotes/h11.html</a></li>
-<li><a href="http://people.csail.mit.edu/rinard/osnotes/h10.html">http://people.csail.mit.edu/rinard/osnotes/h10.html</a></li>
-</ul>
-
-
-<p>A lecture note about MIPS stack and heap, helpful when implementing <code>sbrk</code> system call.</p>
-
-<p><a href="http://www.howardhuang.us/teaching/cs232/04-Functions-in-MIPS.pdf">http://www.howardhuang.us/teaching/cs232/04-Functions-in-MIPS.pdf</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161: Arguments Passing in System Call]]></title>
-    <link href="http://jhshi.me/2012/03/28/os161-arguments-passing-in-system-call/"/>
-    <updated>2012-03-28T17:59:26-04:00</updated>
-    <id>http://jhshi.me/2012/03/28/os161-arguments-passing-in-system-call</id>
-    <content type="html"><![CDATA[<p>One principle of kernel programming is that: <strong>do not trust anything users
-passed in</strong>. Since we assume that users are bad, they will do anything they can
-to crash the kernel (just as <code>$OS161_SRC/user/testbin/badcall/badcall.c</code> do). So
-we need pay special attention to the arguments of the system calls, <strong>especially the
-pointers</strong>.</p>
-
-<!-- more -->
-
-
-<p><code>$OS161_SRC/kern/vm/copyinout.c</code> provides several useful facilities to safely copy user
-level arguments into kernel or vice versa. They assure that <strong>even if user arguments is
-illegal, the kernel can still get control and handle the error, instead of just
-crash</strong>. So let&#8217;s see how can they be applied in the system calls.</p>
-
-<h3>User space strings</h3>
-
-<p>Some system call, e.g. <code>open</code>, <code>chdir</code>, <code>execv</code>, requires a user level string as
-arguments. We can use <code>copyinstr</code> to do this. See the prototype of <code>copyinstr</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="n">copyinstr</span><span class="p">(</span><span class="n">const_userptr_t</span> <span class="n">usersrc</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">dest</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">size_t</span> <span class="o">*</span><span class="n">actual</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p><code>const_userptr_t</code> is just a signpost that make <code>usersrc</code> explicitly looks like a user
-pointer. So basically, this function copies a <code>\0</code> terminated user
-space string into kernel buffer <code>dest</code>, and copy as much as <code>len</code> bytes, and
-return the actual bytes copied in <code>actual</code>. Note that <code>copyinstr</code> will also
-copy the last <code>\ 0</code>. Suppose we have a function that takes a user space string
-as argument.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">foo</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="kt">char</span> <span class="n">kbuf</span><span class="p">[</span><span class="n">BUF_SIZE</span><span class="p">];</span>
-</span><span class='line'>    <span class="kt">int</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'>    <span class="kt">size_t</span> <span class="n">actual</span><span class="p">;</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">if</span> <span class="p">((</span><span class="n">err</span> <span class="o">=</span> <span class="n">copyinstr</span><span class="p">((</span><span class="n">const_userptr_t</span><span class="p">)</span><span class="n">name</span><span class="p">,</span> <span class="n">kbuf</span><span class="p">,</span> <span class="n">BUF_SIZE</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">actual</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-</span><span class='line'>    <span class="p">{</span>
-</span><span class='line'>        <span class="k">return</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Then if we call <code>foo("hello")</code>, on success, <code>actual</code> will be 6, <strong>including the
-last <code>\0</code></strong>.</p>
-
-<h3>User space buffer</h3>
-
-<p>In system calls like <code>read</code> or <code>write</code>, we need to read from or write to user space
-buffers. We can use <code>copyin</code> or <code>copyout</code> here. For example:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="nf">foo_read</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="o">*</span> <span class="n">ubuf</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">)</span>
-</span><span class='line'><span class="p">{</span>
-</span><span class='line'>    <span class="kt">int</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="kt">void</span><span class="o">*</span> <span class="n">kbuf</span> <span class="o">=</span> <span class="n">kmalloc</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
-</span><span class='line'>    <span class="k">if</span> <span class="p">((</span><span class="n">err</span> <span class="o">=</span> <span class="n">copyin</span><span class="p">((</span><span class="n">const_userptr_t</span><span class="p">)</span><span class="n">ubuf</span><span class="p">,</span> <span class="n">kbuf</span><span class="p">,</span> <span class="n">len</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-</span><span class='line'>    <span class="p">{</span>
-</span><span class='line'>        <span class="n">kfree</span><span class="p">(</span><span class="n">kbuf</span><span class="p">);</span>
-</span><span class='line'>        <span class="k">return</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">if</span> <span class="p">((</span><span class="n">err</span> <span class="o">=</span> <span class="n">copyout</span><span class="p">(</span><span class="n">kbuf</span><span class="p">,</span> <span class="p">(</span><span class="n">userptr_t</span><span class="p">)</span><span class="n">ubuf</span><span class="p">,</span> <span class="n">len</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-</span><span class='line'>    <span class="p">{</span>
-</span><span class='line'>        <span class="n">kfree</span><span class="p">(</span><span class="n">kbuf</span><span class="p">);</span>
-</span><span class='line'>        <span class="k">return</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161: General Tips for System Call]]></title>
-    <link href="http://jhshi.me/2012/03/21/os161-general-tips-for-system-call/"/>
-    <updated>2012-03-21T10:45:32-04:00</updated>
-    <id>http://jhshi.me/2012/03/21/os161-general-tips-for-system-call</id>
-    <content type="html"><![CDATA[<p>Here are some practice that will hopefully make you fell more comfortable and
-more productive when you poking with os161 syscalls.</p>
-
-<!-- more -->
-
-
-<h3>Tired of bmake &amp; bmake install every time?</h3>
-
-<p>Edit <code>$OS161_SRC/mk/os161.kernel.mk</code>, find this line:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>all: includelinks .WAIT $(KERNEL) </span></code></pre></td></tr></table></div></figure>
-
-
-<p>Add some lines below it:</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>all: includelinks .WAIT $(KERNEL) 
-</span><span class='line'>    #generate tags for ctags, excluding some directories
-</span><span class='line'>    cd $(TOP);ctags -R --exclude='.git' --exclude='build' --exclude='kern/compile' .; cd- 
-</span><span class='line'>    #automatically execute bmake install after bmake
-</span><span class='line'>    bmake install </span></code></pre></td></tr></table></div></figure>
-
-
-<p>Then a single <code>bmake</code> will automatically generate tags for your source file as
-well as install the executable.</p>
-
-<h3>Work on file system calls first</h3>
-
-<p>Work on file system calls and make them work correctly first, since user level
-I/O functions (most importantly <code>printf</code>) rely heavily on <code>sys_write</code> and
-<code>sys_read</code> of console. If you first work on the process system calls, how would
-you assure your code is right? Without a working and correct <code>printf</code>, most of
-the test programs won&#8217;t work.</p>
-
-<h3>Test your code</h3>
-
-<p>Test programs in <code>$OS161_SRC/user/testbin</code> are very helpful when you want
-to test your code, especially <code>badcall(asst2)</code>, <code>filetest</code>, <code>crash</code> (for
-<code>kill_curthread</code>), <code>argtest</code> (for <code>execv</code>) and <code>forktest</code>.</p>
-
-<p>You can use the <code>p</code> command provided by os161 kernel menu to execute this test
-programs:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='make'><span class='line'><span class="nf">OS/161 kernel [? for menu]</span><span class="o">:</span> <span class="m">p /testbin/argtest abc def ghi jkl mno p </span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<h3>Use GDB</h3>
-
-<p>Without GDB, you&#8217;re dead. It&#8217;s really worth spending some time to learn the
-basic usage of gdb. An upset fact is that you can not watch user level code (or
-you don&#8217;t want to bother), so use the &#8221;<code>printf</code> debug method&#8221; in user code.</p>
-
-<p>Here are a few excellent gdb tutorials that you&#8217;ll probably find helpful.</p>
-
-<ul>
-<li><a href="http://www.cs.cmu.edu/~gilpin/tutorial/">GDB Tutorial from CMU</a></li>
-<li><a href="http://www.eecs.harvard.edu/~mdw/course/cs161/handouts/gdb.html">Tips from Harvard</a></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161: How to Add a System Call]]></title>
-    <link href="http://jhshi.me/2012/03/21/os161-how-to-add-a-system-call/"/>
-    <updated>2012-03-21T10:15:41-04:00</updated>
-    <id>http://jhshi.me/2012/03/21/os161-how-to-add-a-system-call</id>
-    <content type="html"><![CDATA[<p>Let&#8217;s use the <code>fork</code> system call as an example. For convinience, let&#8217;s assume
-<code>$OS161_SRC</code> is your os161 source root directory.</p>
-
-<!-- more -->
-
-
-<h3>How is a system call defined?</h3>
-
-<p>Take a look at <code>$OS161_SRC/user/lib/libc/arch/mips/syscalls-mips.S</code>. We can see
-that a macro called <code>SYSCALL(sym, num)</code> is defined. Basically, this macro does
-a very simple thing: fill <code>$v0</code> with <code>SYS_##sym</code> and jump to the common code at
-<code>__syscall</code>. Two points to note here:</p>
-
-<ul>
-<li><p><code>SYS_##sym</code> is a little compiler trick. <code>##sym</code> will be replaced by the
-actual name of <code>sym</code>. In our case (<code>SYSCALL(fork, SYS_fork)</code>), here <code>sym</code> is
-actually <code>fork</code>, so <code>SYS_##sym</code> will be replaced by <code>SYS_fork</code>. See <a href="http://gcc.gnu.org/onlinedocs/cpp/Concatenation.html#Concatenation">this gcc
-document</a> if you want know more details about it.</p></li>
-<li><p>The second argument of the macro, <code>num</code>, is unused here.</p></li>
-</ul>
-
-
-<p>Then in <code>__syscall</code>, the first instruction is the <a href="http://www.mrc.uidaho.edu/mrc/people/jff/digital/MIPSir.html">MIPS syscall instruction</a>.
-We&#8217;ll discuss the details of this instruction later.
-After this, we check <code>$a3</code> value to see if the syscall is successful and store
-the error number (<code>$v0</code>) to <code>errno</code> if not.</p>
-
-<p><code>$OS161_SRC/build/user/libc/syscall.S</code> is generated according to
-<code>$OS161_SRC/user/lib/libc/arch/mips/syscall-mips.S</code> during compiling, and this
-file is the actual file that be compiled and linked to user library. We can
-see that besides the <code>SYSCALL</code> macro and the <code>__syscall</code> code, declarations of
-all the syscalls are added here. So when we call <code>fork</code> in user program, we
-actually called the assembly functions defined in this file.</p>
-
-<h3>How a system call get called?</h3>
-
-<p>The MIPS <code>syscall</code> instruction will cause a software interruption. (See
-<a href="http://courses.missouristate.edu/KenVollmar/MARS/Help/SyscallHelp.html">MIPS syscall function</a>). After this instruction, the hardware
-will automatically turn off interrupts, then jump to the code located at
-<code>0x80000080</code>. From <code>$OS161_SRC/kern/arch/mips/locore/exception-mips1.S</code>, we can
-see that <code>mips_general_handler</code> is the code that defined at <code>0x80000080</code>.</p>
-
-<p>The assembly code here do a lot of stuff that we don&#8217;t need to care. All we
-need to know that they will save a trapframe on current thread&#8217;s kernel stack
-and call <code>mips_trap</code> in <code>$OS161_SRC/kern/arch/mips/locore/trap.c</code>. Then if this
-trap (or interruption) is caused by <code>syscall</code> instruction, <code>mips_trap</code> will
-call <code>syscall</code> in <code>$OS161_SRC/kern/arch/mips/syscall/syscall.c</code> to handle. Then
-we go to our familiar <code>syscall</code> function, we dispatch the syscall according to
-the call number, then collect the results and return. If every thing is OK, we
-go back to <code>mips_trap</code>, then to the assembly code <code>common_exception</code> and then
-go back to user mode.</p>
-
-<h3>How to add a system call</h3>
-
-<p>To add a system call, a typical flow would be:</p>
-
-<ul>
-<li>Add a case branch in the syscall function:</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'> <span class="k">case</span> <span class="n">SYS_fork</span>:
-</span><span class='line'>     <span class="n">err</span> <span class="o">=</span> <span class="n">sys_fork</span><span class="p">(</span><span class="o">&amp;</span><span class="n">retval</span><span class="p">,</span> <span class="n">tf</span><span class="p">);</span>
-</span><span class='line'>     <span class="k">break</span><span class="p">;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<ul>
-<li><p>Add a new header file in <code>$OS161_SRC/kern/include/kern</code>, declare your
-<code>sys_fork</code></p></li>
-<li><p>Include your header file in <code>$OS161_SRC/kern/include/syscall.h</code> so that the
-compiler can find the definition of <code>sys_fork</code></p></li>
-<li><p>Add a new c file in <code>$OS161_SRC/kern/syscall</code>, implement your <code>sys_fork</code>
-function</p></li>
-<li><p>Add your c file&#8217;s full path to <code>$OS161_SRC/kern/conf/conf.kern</code> so that
-your c file will be compiled. See <code>loadelf.c</code> and <code>runprogram.c</code> entries in that
-file for examples.</p></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 Process Scheduling]]></title>
-    <link href="http://jhshi.me/2012/03/18/os161-process-scheduling/"/>
-    <updated>2012-03-18T11:19:27-04:00</updated>
-    <id>http://jhshi.me/2012/03/18/os161-process-scheduling</id>
-    <content type="html"><![CDATA[<p>OS161 provides a simple round-robin scheduler by default. It works like this:</p>
-
-<ul>
-<li><p><code>hardclock</code> from <code>$OS161_SRC/kern/thread/clock.c</code> will be periodically called
-(from hardware clock interrupt handler)</p></li>
-<li><p>Two functions may be called there after:</p>
-
-<ul>
-<li><code>schedule</code> to change the order the threads in ready queue, which currently
-does nothing</li>
-<li><code>thread_consider_migraton</code> to enable thread migration among CPU cores</li>
-</ul>
-</li>
-<li><p>Then it will call <code>thread_yield</code> to cause the current thread yield to another
-thread</p></li>
-</ul>
-
-
-<p>We need to play with the <code>schedule</code> function to give interactive threads higher
-priority.</p>
-
-<!-- more -->
-
-
-<h3>Why give priority to interactive threads?</h3>
-
-<p>There are two reasons about this (at least the two in my mind) :</p>
-
-<ul>
-<li><p><strong>Your time is more valuable than computer&#8217;s</strong>. So in general, we
-should first serve those threads that interact with you. For example, you don&#8217;t
-want to wait the computer in a shell while it&#8217;s busy doing backup, right?</p></li>
-<li><p>Interactive threads tend to be I/O bound, which means they often get stuck
-waiting for input or output. So they normally fail to consume their granted
-time slice. Thus we can switch to computation bound threads when they stuck and
-boost computer utilization.</p></li>
-</ul>
-
-
-<h3>How can we know whether a thread is interactive or not?</h3>
-
-<p>As said above, interactive threads are normally I/O bound. <strong>So they often need
-to sleep a lot.</strong></p>
-
-<p>In <code>$OS161_SRC/kern/thread/thread.c</code>, we can see that <code>thread_switch</code> is used to actually
-switch between threads. The first argument is <code>newstate</code>, which give some hints
-about the current thread.</p>
-
-<p>If <code>newstate</code> is <code>S_READY</code>, it means that <strong>current thread has consumed all
-its time slice and is forced to yield to another thread</strong> (by hardware clock).
-So we can guess that it&#8217;s not interactive, or, it&#8217;s computation intensive.
-However, if <code>newstate</code> is <code>S_SLEEP</code>, then it means <strong>current thread offers to
-yield to another thread</strong>, maybe waiting for I/O or a mutex. Thus we can guess
-that this thread is more interactive, or, it&#8217;s I/O intensive.</p>
-
-<p>So by the <code>newstate</code>, we can make a good guess of current thread.</p>
-
-<h3>How to implement it?</h3>
-
-<p><a href="http://en.wikipedia.org/wiki/Multilevel_feedback_queue">Multi-Level Feedback Queue</a> seems to be a good enough algorithm in
-this case.</p>
-
-<p>We can add a priority field in <code>struct thread</code> and initiate it as medium
-priority in <code>thread_create</code>. Then in <code>thread_swith</code>, we can adjust current
-thread&#8217;s priority by the <code>newstate</code>.</p>
-
-<ul>
-<li>If it&#8217;s <code>S_SLEEP</code> then we increase current thread&#8217;s priority.</li>
-<li>Otherwise, if it&#8217;s <code>S_READY</code> then we decrease current thread&#8217;s priority.</li>
-</ul>
-
-
-<p>Of course, we can only support a finite priority level here, <strong>so be careful
-with boundary case</strong>. For example, if current thread is
-already the highest priority and still request <code>S_SLEEP</code>, then we just leave it
-in that priority.</p>
-
-<p>Then in <code>schedule</code>, we need to <strong>find the thread with highest priority
-among all the threads in <code>curcpu-&gt;c_runqueue</code>, and bring it to head</strong>.</p>
-
-<p>Current CPU&#8217;s run queue is organized as a double linked list with head
-element. <code>$OS161_SRC/kern/include/threadlist.h</code> provides several useful interface to
-let us manipulate the list. Find a maximum/minimum number among a list
-is so simple that I won&#8217;t provide any details here. But note that <strong>the
-head element is just a place holder</strong>. So you may want to start from
-<code>curcpu-&gt;c_runqueue.tl_head.tln_Next</code> and stop when <code>elem-&gt;tln_next == NULL</code>.</p>
-
-<p>Once find the thread, we need to bring it to list head so we can
-leave <code>thread_switch</code> unchanged. A <code>threadlist_remove</code> followed by
-<code>threadlist_addhead</code> will be sufficient here.</p>
-
-<p><strong>One problem of MLFQ is starvation</strong>. So you may want to periodically reset all
-threads&#8217; priority to medium level for fairness.</p>
-
-<p>That&#8217;s all. Here&#8217;s just a work solution. Much work has be done if you want
-better scheduling for performance.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 File System Calls]]></title>
-    <link href="http://jhshi.me/2012/03/14/os161-file-system-calls/"/>
-    <updated>2012-03-14T17:19:17-04:00</updated>
-    <id>http://jhshi.me/2012/03/14/os161-file-system-calls</id>
-    <content type="html"><![CDATA[<p>Assume you&#8217;ve read my previous post on <a href="http://jhshi.me/2012/03/14/os161-file-operation-overview/">file operations in OS161</a>,
-then everything is quite straightforward. One more thing, remember to protect
-every access to the file descriptor data structure using lock!</p>
-
-<p>Let&#8217;s get started.</p>
-
-<!-- more -->
-
-
-<h3><code>sys_open</code> and <code>sys_close</code></h3>
-
-<p>We&#8217;ll rely on <code>vfs_open</code> to do most of the work. But before that, we need to
-check:</p>
-
-<ul>
-<li><p>Is <code>filename</code> a valid pointer? (alignment, NULL, kernel pointer, etc.)</p></li>
-<li><p>Is flags valid? flags can only contain exactly one of <code>O_RDONLY</code>, <code>O_WRONLY</code>
-and <code>O_RDWR</code></p></li>
-</ul>
-
-
-<p>After these, we need to allocate a fd to the opened file: just scan the
-<code>curthread-&gt;t_fdtable</code> and find a available slot (<code>NULL</code>). Then we need to
-actually open the file using <code>vfs_open</code>. Note that we need to copy <code>filename</code>
-into kernel buffer using <code>copyinstr</code>, for both security reasons, and that
-<code>vfs_open</code> may destroy the pathname passed in.</p>
-
-<p>Once <code>vfs_open</code> successfully returns, we can initialize a <code>struct fdesc</code>. Pay
-special attention to <code>fdesc-&gt;offset</code>. Without <code>O_APPEND</code>, it should be zero.
-But with <code>O_APPEND</code>, it should be file size. So we need to check it and use
-<code>VOP_STAT</code> to get file size if necessary.</p>
-
-<p><code>sys_close</code> is quite easy. We first decrease the file reference counter. And
-close the file using <code>vfs_close</code> and free the <code>struct fdesc</code> if the counter
-reaches 0.</p>
-
-<h3><code>sys_read</code> and <code>sys_write</code></h3>
-
-<p>As usual, before do anything, first check the parameters.</p>
-
-<p>The main work here is using <code>VOP_READ</code> or <code>VOP_WRITE</code> together with <code>struct
-iovec</code> and <code>struct uio</code>. <code>kern/syscall/loadelf.c</code> is a good start, but we can
-leverage <code>uio_kinit</code> to do most of the initialization work. Basically, reading
-a file may looks like:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">iovec</span> <span class="n">iov</span><span class="p">;</span>
-</span><span class='line'><span class="k">struct</span> <span class="n">uio</span> <span class="n">ku</span><span class="p">;</span>
-</span><span class='line'><span class="kt">int</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'><span class="kt">char</span> <span class="n">kbuf</span><span class="p">[</span><span class="n">BUF_SIZE</span><span class="p">];</span>
-</span><span class='line'><span class="cm">/* or allocate buffer using kmalloc </span>
-</span><span class='line'><span class="cm"> * char* kbuf = kmalloc(BUF_SIZE); </span>
-</span><span class='line'><span class="cm"> */</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">uio_kinit</span><span class="p">(</span><span class="o">&amp;</span><span class="n">iov</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ku</span><span class="p">,</span> <span class="n">kbuf</span><span class="p">,</span> <span class="n">BUF_SIZE</span><span class="p">,</span> <span class="n">fdesc</span><span class="o">-&gt;</span><span class="n">offset</span><span class="p">,</span> <span class="n">UIO_READ</span><span class="p">);</span>
-</span><span class='line'><span class="k">if</span> <span class="p">((</span><span class="n">err</span> <span class="o">=</span> <span class="n">VOP_READ</span><span class="p">(</span><span class="n">fdesc</span><span class="o">-&gt;</span><span class="n">vn</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ku</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="k">return</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'><span class="cm">/* note how we calcuate bytes_read here */</span>
-</span><span class='line'><span class="n">bytes_read</span> <span class="o">=</span> <span class="n">BUF_SIZE</span> <span class="o">-</span> <span class="n">ku</span><span class="p">.</span><span class="n">uio_resid</span><span class="p">;</span>
-</span><span class='line'><span class="n">fdesc</span><span class="o">-&gt;</span><span class="n">offset</span> <span class="o">=</span> <span class="n">ku</span><span class="p">.</span><span class="n">uio_offset</span><span class="p">;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Since we&#8217;ve carefully handled std files when initialization. Here we just treat
-them as normal files and pay no special attention to them.</p>
-
-<h3><code>sys_dup2</code></h3>
-
-<p>The hardest thing here is not how to write <code>sys_dup2</code>, but instead how <code>dup2</code>
-is supposed to be used. Here is a typical code snippet of how to use <code>dup2</code></p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">int</span> <span class="n">logfd</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="s">&quot;logfile&quot;</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="p">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="cm">/* note the sequence of parameter */</span>
-</span><span class='line'><span class="n">dup2</span><span class="p">(</span><span class="n">logfd</span><span class="p">,</span> <span class="n">STDOUT_FILENO</span><span class="p">);</span>
-</span><span class='line'><span class="n">close</span><span class="p">(</span><span class="n">logfd</span><span class="p">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="cm">/* now all print content will go to log file */</span>
-</span><span class='line'><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Hello, OS161.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>We can see that in <code>dup2(oldfd, newfd)</code>:</p>
-
-<ul>
-<li><p>After <code>dup2</code>, <code>oldfd</code> and <code>newfd</code> points to the same file. But we can call
-<code>close</code> on any of them and do not influence the other.</p></li>
-<li><p>After <code>dup21</code>, all read/write to <code>newfd</code> will be actually performed on
-<code>oldfd</code>. (Of course, they points to the same file!!)</p></li>
-<li><p>If <code>newfd</code> is previous opened, it should be closed in <code>dup2</code> ( according
-to <a href="http://linux.die.net/man/2/dup2"><code>dup2</code> man page</a>).</p></li>
-</ul>
-
-
-<p>Once we&#8217;re clear about these. Coding <code>sys_dup2</code> is a piece of cake. Just don&#8217;t
-forget to maintain the <code>fdesc-&gt;ref_count</code> accordingly.</p>
-
-<h3><code>sys_lseek</code>, <code>sys_chdir</code> and <code>sys__getcwd</code></h3>
-
-<p>Nothing to say. Use <code>VOP_TRYSEEK</code>, <code>vfs_chidr</code> and <code>vfs_getcwd</code> respectively.
-Only one thing, if <code>SEEK_END</code> is used. use <code>VOP_STAT</code> to get the file size, as
-we did in <code>sys_open</code></p>
-
-<h3>64-bit parameter and return value in lseek</h3>
-
-<p>This is just a minor trick. Let&#8217;s first see the definition of <code>lseek</code></p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">off_t</span> <span class="n">lseek</span> <span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">pos</span><span class="p">,</span> <span class="kt">int</span> <span class="n">whence</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And from <code>$OS161_SRC/kern/include/types.h</code>, we can see that <code>off_t</code> is type-defined as
-64-bit integer (<code>i64</code>). So the question here is: how to pass 64-bit parameter
-to <code>sys_lseek</code> and how get the 64-bit return value of it.</p>
-
-<h4>Pass 64-bit argument to sys_lseek</h4>
-
-<p>From the comment in <code>$OS161_SRC/kern/arch/mips/syscall/syscall.c</code>, we can see that, <code>fd</code>
-should be in <code>$a0</code>, <code>pos</code> should be in (<code>$a2:$a3</code>) (<strong><code>$a2</code> stores high 32-bit and
-<code>$a3</code> stores low 32-bit)</strong>, and <code>whence</code> should be in <code>sp+16</code>. Here, <code>$a1</code> is not
-used due to alignment.</p>
-
-<p>So in the switch branch of <code>sys_lseek</code>, we should first pack (<code>$a2:$a3</code>) into a 64-bit
-variable, say <code>sys_pos</code>. Then we use <code>copyin</code> to copy <code>whence</code> from user stack (<code>tf-&gt;tf_sp+16</code>).</p>
-
-<p>Here is a code snippet demonstrating how to do this:</p>
-
-<h3>Get 64-bit return value of <code>sys_lseek</code></h3>
-
-<p>Also from the comment, we know that a 64-bit return value is stored in
-(<code>$v0:$v1</code>) (<code>$v0</code> stores high 32-bit and <code>$v1</code> stores low 32-bit). And note that
-after the <code>switch</code> statement, <code>retval</code> will be assigned to $v0, so here we just
-need to copy the low 32-bit of <code>sys_lseek</code>&#8217;s return value to $v1, and high
-32-bit to <code>retval</code>.</p>
-
-<p>Here is a code snippet demonstrating the above idea:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">case</span> <span class="n">SYS_lseek</span>:
-</span><span class='line'><span class="p">{</span>
-</span><span class='line'>    <span class="kt">off_t</span> <span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="cm">/* pack (a2:a3) to pos */</span>
-</span><span class='line'>    <span class="n">pos</span> <span class="o">|=</span> <span class="n">a2</span><span class="p">;</span>
-</span><span class='line'>    <span class="n">pos</span> <span class="o">&lt;&lt;=</span> <span class="mi">32</span><span class="p">;</span>
-</span><span class='line'>    <span class="n">pos</span> <span class="o">|=</span> <span class="n">a3</span><span class="p">;</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="cm">/* get whence from user stack */</span>
-</span><span class='line'>    <span class="kt">int</span> <span class="n">whence</span><span class="p">;</span>
-</span><span class='line'>    <span class="k">if</span> <span class="p">((</span><span class="n">err</span> <span class="o">=</span> <span class="n">copyin</span><span class="p">((</span><span class="n">const_userptr_t</span><span class="p">)(</span><span class="n">tf</span><span class="o">-&gt;</span><span class="n">tf_sp</span><span class="o">+</span><span class="mi">16</span><span class="p">),</span> <span class="o">&amp;</span><span class="n">whence</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">whence</span><span class="p">)))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>        <span class="k">break</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="kt">off_t</span> <span class="n">ret</span><span class="p">;</span>
-</span><span class='line'>    <span class="n">err</span> <span class="o">=</span> <span class="n">sys_lseek</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ret</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">tf</span><span class="o">-&gt;</span><span class="n">tf_a0</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">whence</span><span class="p">);</span>
-</span><span class='line'>    <span class="cm">/* unpack ret to (v0:v1) */</span>
-</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">err</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>        <span class="n">retval</span> <span class="o">=</span> <span class="n">ret</span><span class="o">&gt;&gt;</span><span class="mi">32</span><span class="p">;</span>
-</span><span class='line'>        <span class="n">tf</span><span class="o">-&gt;</span><span class="n">tf_v1</span> <span class="o">=</span> <span class="n">ret</span><span class="p">;</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>    <span class="k">break</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
 
 ]]></content>
   </entry>

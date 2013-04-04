@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:syscall | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/syscall/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Console Input Messed up in OS161]]></title>
+    <link href="http://jhshi.me/2013/03/15/console-input-messed-up-in-os161/"/>
+    <updated>2013-03-15T00:26:57-04:00</updated>
+    <id>http://jhshi.me/2013/03/15/console-input-messed-up-in-os161</id>
+    <content type="html"><![CDATA[<p>When you finished the process system call (e.g., <code>fork</code>, <code>execv</code>) and test your
+system call by executing some user program, you'll probably find that the
+console input behavior is messed up.</p>
+
+<!-- more -->
+
+
+<p>For example, when you executing user shell from OS161 kernel menu, and then
+executing <code>/bin/true</code> from the shell, you may see this</p>
+
+<p><code>bash
+OS/161 kernel [? for menu]: s
+Operation took 0.000285120 seconds
+OS/161 kernel [? for menu]: (program name unknown): Timing enabled.
+OS/161$ /bin/true
+(program name unknown): bntu: No such file or directory
+(program name unknown): subprocess time: 0.063300440 seconds
+Exit 1
+</code></p>
+
+<p>In this case, the shell program only receive the input "bnut" instead of your
+input (<code>/bin/true</code>).</p>
+
+<p>To find out why, we need to dig into how kernel menu (<code>$OS161_SRC/kern/startup/menu.c</code>)
+works a little bit. When you hit "s" in the kernel menu. What happens?</p>
+
+<ol>
+<li><p><code>cmd_dispatch</code> will look up the <code>cmd_table</code> and call <code>cmd_shell</code></p></li>
+<li><p><code>cmd_shell</code> just call <code>common_prog</code> with the shell path argument</p></li>
+<li><p><code>common_prog</code> will first create a child thread with the start function
+<code>cmd_progthread</code>, then return</p></li>
+<li><p>In the child thread, <code>cmd_progthread</code> will try to run the actual program
+(in our case, the shell)</p></li>
+</ol>
+
+
+<p>Note that the shell program is run in a separate child thread, and the parent
+thread (i.e., the menu thread) will continue to run after he "forked" the child
+thread.</p>
+
+<p>So now there are actually two thread that want to read console input, which
+leads to race condition. This is why the shell program receive corrupted input:
+the menu thread eaten some of the inputs!</p>
+
+<p>To solve this problem, we need to let the menu thread wait for the child
+thread to complete, then return. So what we need to do is in <code>common_prog</code>, we
+need to do a <code>waitpid</code> operation after we call <code>thread_fork</code>. And at the end of
+<code>cmd_progthread</code>, we need to explicitly call <code>exit</code> with proper exit code in
+case the user program doesn't do this.</p>
+
+<p>Also note that <code>waitpid</code> and <code>exit</code> are in fact user land system call, and we can
+not directly call them in kernel, so you may need to make some "shortcuts" in
+your system call implementation to let the kernel be able to call <code>sys_waitpid</code>
+and <code>sys_exit</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 sbrk System Call]]></title>
+    <link href="http://jhshi.me/2012/04/27/os161-sbrk-system-call/"/>
+    <updated>2012-04-27T18:17:36-04:00</updated>
+    <id>http://jhshi.me/2012/04/27/os161-sbrk-system-call</id>
+    <content type="html"><![CDATA[<p>If you're not familiar with <code>sbrk</code> system call, here is <a href="http://en.wikipedia.org/wiki/Sbrk">it's wiki</a>,
+and its <a href="http://www.cs.utah.edu/flux/moss/node39.html">interface description</a>. In a nutshell,
+<code>malloc</code> will use <code>sbrk</code> to get heap space.</p>
+
+<!-- more -->
+
+
+<p>In <code>as_define_region</code>, we've find the highest address that user text and data
+segment occupy, and based on this, we've set the <code>heap_start</code> in <code>struct
+addrspace</code>. This makes the <code>sbrk</code> system call implementation quite easy: almost
+just parameter checking work. Several points:</p>
+
+<ul>
+<li><p><code>inc</code> could be negative, so make sure <code>heap_end+inc</code> >= <code>heap_start</code></p></li>
+<li><p>We need to set up a limit to user's heap size, e.g. 16MB or 32MB.
+Otherwise, some application such as the test program <code>malloctest</code> will try to
+malloc as much as memory as it can (~1GB), and your OS will suffer serving
+these kind of programs, especially when you have only 512KB physical memory. So
+we need to check <code>heap_end+inc-heap_start &lt; USER_HEAP_LIMIT</code></p></li>
+<li><p>Don't forget round up inc by 4. This is optional but can lower the chance
+of unaligned pointers</p></li>
+</ul>
+
+
+<p>After all these checking, just return <code>heap_end</code> as a <code>void*</code> pointer and increase
+<code>heap_end</code> by <code>inc</code>. Of course, like any other system calls, you need to add a
+case entry in the <code>syscall</code> function.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161: Arguments Passing in System Call]]></title>
+    <link href="http://jhshi.me/2012/03/28/os161-arguments-passing-in-system-call/"/>
+    <updated>2012-03-28T17:59:26-04:00</updated>
+    <id>http://jhshi.me/2012/03/28/os161-arguments-passing-in-system-call</id>
+    <content type="html"><![CDATA[<p>One principle of kernel programming is that: <strong>do not trust anything users
+passed in</strong>. Since we assume that users are bad, they will do anything they can
+to crash the kernel (just as <code>$OS161_SRC/user/testbin/badcall/badcall.c</code> do). So
+we need pay special attention to the arguments of the system calls, <strong>especially the
+pointers</strong>.</p>
+
+<!-- more -->
+
+
+<p><code>$OS161_SRC/kern/vm/copyinout.c</code> provides several useful facilities to safely copy user
+level arguments into kernel or vice versa. They assure that <strong>even if user arguments is
+illegal, the kernel can still get control and handle the error, instead of just
+crash</strong>. So let's see how can they be applied in the system calls.</p>
+
+<h3>User space strings</h3>
+
+<p>Some system call, e.g. <code>open</code>, <code>chdir</code>, <code>execv</code>, requires a user level string as
+arguments. We can use <code>copyinstr</code> to do this. See the prototype of <code>copyinstr</code>:</p>
+
+<p><code>c
+int copyinstr(const_userptr_t usersrc, char* dest, size_t len, size_t *actual)
+</code></p>
+
+<p><code>const_userptr_t</code> is just a signpost that make <code>usersrc</code> explicitly looks like a user
+pointer. So basically, this function copies a <code>\0</code> terminated user
+space string into kernel buffer <code>dest</code>, and copy as much as <code>len</code> bytes, and
+return the actual bytes copied in <code>actual</code>. Note that <code>copyinstr</code> will also
+copy the last <code>\ 0</code>. Suppose we have a function that takes a user space string
+as argument.</p>
+
+<p>```c
+int foo (char* name) {</p>
+
+<pre><code>char kbuf[BUF_SIZE]; 
+int err;
+size_t actual;
+
+if ((err = copyinstr((const_userptr_t)name, kbuf, BUF_SIZE, &amp;actual)) != 0)
+{ 
+    return err; 
+} 
+return 0; 
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Then if we call <code>foo("hello")</code>, on success, <code>actual</code> will be 6, <strong>including the
+last <code>\0</code></strong>.</p>
+
+<h3>User space buffer</h3>
+
+<p>In system calls like <code>read</code> or <code>write</code>, we need to read from or write to user space
+buffers. We can use <code>copyin</code> or <code>copyout</code> here. For example:</p>
+
+<p>```c
+int foo_read(unsigned char* ubuf, size_t len)
+{</p>
+
+<pre><code>int err;
+
+void* kbuf = kmalloc(len); 
+if ((err = copyin((const_userptr_t)ubuf, kbuf, len)) != 0) 
+{ 
+    kfree(kbuf);
+    return err; 
+}
+
+if ((err = copyout(kbuf, (userptr_t)ubuf, len)) != 0) 
+{ 
+    kfree(kbuf);
+    return err; 
+}
+
+return 0; 
+</code></pre>
+
+<p>}
+```</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161: General Tips for System Call]]></title>
+    <link href="http://jhshi.me/2012/03/21/os161-general-tips-for-system-call/"/>
+    <updated>2012-03-21T10:45:32-04:00</updated>
+    <id>http://jhshi.me/2012/03/21/os161-general-tips-for-system-call</id>
+    <content type="html"><![CDATA[<p>Here are some practice that will hopefully make you fell more comfortable and
+more productive when you poking with os161 syscalls.</p>
+
+<!-- more -->
+
+
+<h3>Tired of bmake &amp; bmake install every time?</h3>
+
+<p>Edit <code>$OS161_SRC/mk/os161.kernel.mk</code>, find this line:</p>
+
+<p><code>
+all: includelinks .WAIT $(KERNEL)
+</code></p>
+
+<p>Add some lines below it:</p>
+
+<p>```
+all: includelinks .WAIT $(KERNEL)</p>
+
+<pre><code>#generate tags for ctags, excluding some directories
+cd $(TOP);ctags -R --exclude='.git' --exclude='build' --exclude='kern/compile' .; cd- 
+#automatically execute bmake install after bmake
+bmake install 
+</code></pre>
+
+<p>```</p>
+
+<p>Then a single <code>bmake</code> will automatically generate tags for your source file as
+well as install the executable.</p>
+
+<h3>Work on file system calls first</h3>
+
+<p>Work on file system calls and make them work correctly first, since user level
+I/O functions (most importantly <code>printf</code>) rely heavily on <code>sys_write</code> and
+<code>sys_read</code> of console. If you first work on the process system calls, how would
+you assure your code is right? Without a working and correct <code>printf</code>, most of
+the test programs won't work.</p>
+
+<h3>Test your code</h3>
+
+<p>Test programs in <code>$OS161_SRC/user/testbin</code> are very helpful when you want
+to test your code, especially <code>badcall(asst2)</code>, <code>filetest</code>, <code>crash</code> (for
+<code>kill_curthread</code>), <code>argtest</code> (for <code>execv</code>) and <code>forktest</code>.</p>
+
+<p>You can use the <code>p</code> command provided by os161 kernel menu to execute this test
+programs:</p>
+
+<p><code>make
+OS/161 kernel [? for menu]: p /testbin/argtest abc def ghi jkl mno p
+</code></p>
+
+<h3>Use GDB</h3>
+
+<p>Without GDB, you're dead. It's really worth spending some time to learn the
+basic usage of gdb. An upset fact is that you can not watch user level code (or
+you don't want to bother), so use the "<code>printf</code> debug method" in user code.</p>
+
+<p>Here are a few excellent gdb tutorials that you'll probably find helpful.</p>
+
+<ul>
+<li><a href="http://www.cs.cmu.edu/~gilpin/tutorial/">GDB Tutorial from CMU</a></li>
+<li><a href="http://www.eecs.harvard.edu/~mdw/course/cs161/handouts/gdb.html">Tips from Harvard</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161: How to Add a System Call]]></title>
+    <link href="http://jhshi.me/2012/03/21/os161-how-to-add-a-system-call/"/>
+    <updated>2012-03-21T10:15:41-04:00</updated>
+    <id>http://jhshi.me/2012/03/21/os161-how-to-add-a-system-call</id>
+    <content type="html"><![CDATA[<p>Let's use the <code>fork</code> system call as an example. For convinience, let's assume
+<code>$OS161_SRC</code> is your os161 source root directory.</p>
+
+<!-- more -->
+
+
+<h3>How is a system call defined?</h3>
+
+<p>Take a look at <code>$OS161_SRC/user/lib/libc/arch/mips/syscalls-mips.S</code>. We can see
+that a macro called <code>SYSCALL(sym, num)</code> is defined. Basically, this macro does
+a very simple thing: fill <code>$v0</code> with <code>SYS_##sym</code> and jump to the common code at
+<code>__syscall</code>. Two points to note here:</p>
+
+<ul>
+<li><p><code>SYS_##sym</code> is a little compiler trick. <code>##sym</code> will be replaced by the
+actual name of <code>sym</code>. In our case (<code>SYSCALL(fork, SYS_fork)</code>), here <code>sym</code> is
+actually <code>fork</code>, so <code>SYS_##sym</code> will be replaced by <code>SYS_fork</code>. See <a href="http://gcc.gnu.org/onlinedocs/cpp/Concatenation.html#Concatenation">this gcc
+document</a> if you want know more details about it.</p></li>
+<li><p>The second argument of the macro, <code>num</code>, is unused here.</p></li>
+</ul>
+
+
+<p>Then in <code>__syscall</code>, the first instruction is the <a href="http://www.mrc.uidaho.edu/mrc/people/jff/digital/MIPSir.html">MIPS syscall instruction</a>.
+We'll discuss the details of this instruction later.
+After this, we check <code>$a3</code> value to see if the syscall is successful and store
+the error number (<code>$v0</code>) to <code>errno</code> if not.</p>
+
+<p><code>$OS161_SRC/build/user/libc/syscall.S</code> is generated according to
+<code>$OS161_SRC/user/lib/libc/arch/mips/syscall-mips.S</code> during compiling, and this
+file is the actual file that be compiled and linked to user library. We can
+see that besides the <code>SYSCALL</code> macro and the <code>__syscall</code> code, declarations of
+all the syscalls are added here. So when we call <code>fork</code> in user program, we
+actually called the assembly functions defined in this file.</p>
+
+<h3>How a system call get called?</h3>
+
+<p>The MIPS <code>syscall</code> instruction will cause a software interruption. (See
+<a href="http://courses.missouristate.edu/KenVollmar/MARS/Help/SyscallHelp.html">MIPS syscall function</a>). After this instruction, the hardware
+will automatically turn off interrupts, then jump to the code located at
+<code>0x80000080</code>. From <code>$OS161_SRC/kern/arch/mips/locore/exception-mips1.S</code>, we can
+see that <code>mips_general_handler</code> is the code that defined at <code>0x80000080</code>.</p>
+
+<p>The assembly code here do a lot of stuff that we don't need to care. All we
+need to know that they will save a trapframe on current thread's kernel stack
+and call <code>mips_trap</code> in <code>$OS161_SRC/kern/arch/mips/locore/trap.c</code>. Then if this
+trap (or interruption) is caused by <code>syscall</code> instruction, <code>mips_trap</code> will
+call <code>syscall</code> in <code>$OS161_SRC/kern/arch/mips/syscall/syscall.c</code> to handle. Then
+we go to our familiar <code>syscall</code> function, we dispatch the syscall according to
+the call number, then collect the results and return. If every thing is OK, we
+go back to <code>mips_trap</code>, then to the assembly code <code>common_exception</code> and then
+go back to user mode.</p>
+
+<h3>How to add a system call</h3>
+
+<p>To add a system call, a typical flow would be:</p>
+
+<ul>
+<li><p>Add a case branch in the syscall function:
+<code>c
+case SYS_fork:
+   err = sys_fork(&amp;retval, tf);
+   break;
+</code></p></li>
+<li><p>Add a new header file in <code>$OS161_SRC/kern/include/kern</code>, declare your
+<code>sys_fork</code></p></li>
+<li><p>Include your header file in <code>$OS161_SRC/kern/include/syscall.h</code> so that the
+compiler can find the definition of <code>sys_fork</code></p></li>
+<li><p>Add a new c file in <code>$OS161_SRC/kern/syscall</code>, implement your <code>sys_fork</code>
+function</p></li>
+<li><p>Add your c file's full path to <code>$OS161_SRC/kern/conf/conf.kern</code> so that
+your c file will be compiled. See <code>loadelf.c</code> and <code>runprogram.c</code> entries in that
+file for examples.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

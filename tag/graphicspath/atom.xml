@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:graphicspath | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/graphicspath/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Specify graphics path in Latex]]></title>
+    <link href="http://jhshi.me/2012/06/22/specify-graphicspath-in-latex/"/>
+    <updated>2012-06-22T09:34:33-04:00</updated>
+    <id>http://jhshi.me/2012/06/22/specify-graphicspath-in-latex</id>
+    <content type="html"><![CDATA[<p>We can use the <code>graphicx</code> package together with the <code>graphicspath</code> command to
+specify the looking up path for pictures. A typical structure may look like
+this:</p>
+
+<!-- more -->
+
+
+<p>
+<code>latex
+\usepackage{graphicx}
+% Must use this command BEFORE you begin document!
+\graphicspath{{pic_path1/}{pic_path2}}
+\begin{document}
+% some content
+\end{document}
+</code>
+</p>
+
+<p>As you can see, the syntax of <code>graphicspath</code> command is very simple. You just
+enclose your picture path, either relative to current work path, or absolute
+path, in a pair of curly braces. Note that you must place this command before
+you begin document otherwise it will take no effect.</p>
+
+<p>Please refer to <a href="http://www.tex.ac.uk/cgi-bin/texfaq2html?label=graphicspath">this page</a> for more details about <code>graphicspath</code> command.</p>
+]]></content>
+  </entry>
+  
+</feed>

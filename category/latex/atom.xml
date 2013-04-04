@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: latex | Pearls in Life]]></title>
+  <link href="http://jhshi.me/category/latex/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Specify graphics path in Latex]]></title>
+    <link href="http://jhshi.me/2012/06/22/specify-graphicspath-in-latex/"/>
+    <updated>2012-06-22T09:34:33-04:00</updated>
+    <id>http://jhshi.me/2012/06/22/specify-graphicspath-in-latex</id>
+    <content type="html"><![CDATA[<p>We can use the <code>graphicx</code> package together with the <code>graphicspath</code> command to
+specify the looking up path for pictures. A typical structure may look like
+this:</p>
+
+<!-- more -->
+
+
+<p>
+<code>latex
+\usepackage{graphicx}
+% Must use this command BEFORE you begin document!
+\graphicspath{{pic_path1/}{pic_path2}}
+\begin{document}
+% some content
+\end{document}
+</code>
+</p>
+
+<p>As you can see, the syntax of <code>graphicspath</code> command is very simple. You just
+enclose your picture path, either relative to current work path, or absolute
+path, in a pair of curly braces. Note that you must place this command before
+you begin document otherwise it will take no effect.</p>
+
+<p>Please refer to <a href="http://www.tex.ac.uk/cgi-bin/texfaq2html?label=graphicspath">this page</a> for more details about <code>graphicspath</code> command.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Directly install sty files using yum]]></title>
+    <link href="http://jhshi.me/2012/02/11/directly-install-sty-files-using-yum/"/>
+    <updated>2012-02-11T17:10:06-05:00</updated>
+    <id>http://jhshi.me/2012/02/11/directly-install-sty-files-using-yum</id>
+    <content type="html"><![CDATA[<p>Use the following command to install sty files, say <code>multirow.sty</code>, using yum:</p>
+
+<p><code>
+$sudo yum -y install 'tex(multirow.sty)'
+</code></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Center the Caption of Figure or Table]]></title>
+    <link href="http://jhshi.me/2011/11/18/center-the-caption-of-figure-or-table/"/>
+    <updated>2011-11-18T10:30:03-05:00</updated>
+    <id>http://jhshi.me/2011/11/18/center-the-caption-of-figure-or-table</id>
+    <content type="html"><![CDATA[<p>In latex, the caption of figure or table is aligned left by default. Sometimes,
+it's not that beautiful, especially when your article is two column.</p>
+
+<!-- more -->
+
+
+<p>To fix this, use the <code>caption</code> package with <code>center</code> as the option.</p>
+
+<p><code>
+\usepackage[center]{caption}
+</code></p>
+
+<p>If you like, you can also substitute <code>center</code> with <code>left</code> or <code>right</code></p>
+
+<p>Here is a <a href="http://mirror.math.ku.edu/tex-archive/macros/latex/contrib/caption/caption-eng.pdf">detailed manual</a> of <code>caption</code> package.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Figure Over Two Columns in Latex]]></title>
+    <link href="http://jhshi.me/2011/11/17/figure-over-two-columns-in-latex/"/>
+    <updated>2011-11-17T16:26:21-05:00</updated>
+    <id>http://jhshi.me/2011/11/17/figure-over-two-columns-in-latex</id>
+    <content type="html"><![CDATA[<p>You may often find a table or figure is too big to fit into one column when
+your article has two columns. Use this to insert a figure (same with table) and
+it will save you:</p>
+
+<!-- more -->
+
+
+<p><code>latex
+\begin{figure*}
+% figure here
+\end{figure*}
+</code></p>
+
+<p>Note the star (<code>*</code>) appended after figure? That's the trick.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Set sty file path of Latex in Linux]]></title>
+    <link href="http://jhshi.me/2011/11/13/set-sty-file-path-of-latex-in-fedora-linux/"/>
+    <updated>2011-11-13T10:19:33-05:00</updated>
+    <id>http://jhshi.me/2011/11/13/set-sty-file-path-of-latex-in-fedora-linux</id>
+    <content type="html"><![CDATA[<p>From time to time, you may want to compose your own sty files to eliminate
+long header in your tex file. But it's boring to put you sty file in the same
+directory of your tex file every time since you really want your sty file to be
+common, i.e., can be accessed everywhere in your system.</p>
+
+<!-- more -->
+
+
+<p>One way to achieve this is put your sty file in the system latex directory
+(e.g. <code>/usr/share/texlive/texmf-dist/tex/latex</code>), and then use <code>texhash</code> to
+refresh the database.</p>
+
+<p>But if you would prefer not touch the system directory and want to put the sty
+file somewhere that easy to access and backup, that will not be a very good
+practice.</p>
+
+<p>So you can just tell latex where to find its sty files, i.e.,
+set the system sty file looking up path. Do this by editing
+<code>/usr/share/texlive/texmf/web2c/texmf.cnf</code>. Find the variable called
+<code>TEXINPUTS.tex</code>, add your own sty path there. Don't forget to separate the
+directory using ";" and append "//" to the last directory.</p>
+
+<p>When you finish, execute <code>texhash</code> in a terminal. Then you can just feel free
+to put your sty files in the directory you just specified, latex will now know
+where to find them.</p>
+
+<p>BTW, the comments in <code>texmf.cnf</code> are very useful if you want to do any other tricks.</p>
+]]></content>
+  </entry>
+  
+</feed>

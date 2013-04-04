@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:table | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/table/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Center the Caption of Figure or Table]]></title>
+    <link href="http://jhshi.me/2011/11/18/center-the-caption-of-figure-or-table/"/>
+    <updated>2011-11-18T10:30:03-05:00</updated>
+    <id>http://jhshi.me/2011/11/18/center-the-caption-of-figure-or-table</id>
+    <content type="html"><![CDATA[<p>In latex, the caption of figure or table is aligned left by default. Sometimes,
+it's not that beautiful, especially when your article is two column.</p>
+
+<!-- more -->
+
+
+<p>To fix this, use the <code>caption</code> package with <code>center</code> as the option.</p>
+
+<p><code>
+\usepackage[center]{caption}
+</code></p>
+
+<p>If you like, you can also substitute <code>center</code> with <code>left</code> or <code>right</code></p>
+
+<p>Here is a <a href="http://mirror.math.ku.edu/tex-archive/macros/latex/contrib/caption/caption-eng.pdf">detailed manual</a> of <code>caption</code> package.</p>
+]]></content>
+  </entry>
+  
+</feed>

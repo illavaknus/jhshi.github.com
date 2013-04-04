@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:libpopller | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/libpopller/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[pdflatex: error while loading shared libraries: libpoppler.so.13]]></title>
+    <link href="http://jhshi.me/2011/11/10/pdflatex-error-while-loading-shared-libraries-libpoppler-so-13/"/>
+    <updated>2011-11-10T12:30:33-05:00</updated>
+    <id>http://jhshi.me/2011/11/10/pdflatex-error-while-loading-shared-libraries-libpoppler-so-13</id>
+    <content type="html"><![CDATA[<p>This error occurs when I try to use latex after upgrading to fedora 16. After
+Google it, I find the reason may be when upgrading, the pregrade just update
+the system components, but not user applications, such as <code>texlive</code>. And since
+current version <code>texlive</code> counts on some older libraries, issues occur.</p>
+
+<!-- more -->
+
+
+<p>I find that the current <code>libpoppler</code> in <code>/usr/lib</code> is <code>libpoppler.so.18</code>, so I
+made a symbolic link to it:</p>
+
+<p><code>bash
+sudo ln -s /usr/lib/libpoppler.so.18 /usr/lib/libpoppler.so.13
+</code></p>
+
+<p>This fixes the problem. Thanks to <a href="https://bugs.launchpad.net/ubuntu/+source/xournal/+bug/778234">this post</a></p>
+]]></content>
+  </entry>
+  
+</feed>

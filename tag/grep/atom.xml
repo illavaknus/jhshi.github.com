@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:grep | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/grep/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Line Buffered Cat]]></title>
+    <link href="http://jhshi.me/2012/05/04/line-buffered-cat/"/>
+    <updated>2012-05-04T10:44:15-04:00</updated>
+    <id>http://jhshi.me/2012/05/04/line-buffered-cat</id>
+    <content type="html"><![CDATA[<p>I'd like to watch the output of a UART device in Linux, and I only want to see
+the content when there are a whole line. So I prefer some kind of line-buffered
+cat such as:</p>
+
+<!-- more -->
+
+
+<p><code>bash
+$ cat --line-buffered /dev/crbif0rb0c0ttyS0
+</code></p>
+
+<p>But unfortunately, <code>cat</code> doesn't have a line-buffered option. And fortunately,
+GNU <code>grep</code> has such an option. So we can do</p>
+
+<p><code>
+$ cat /dev/crbif0rb0c0ttyS0 | grep ^ --line-buffered
+</code></p>
+
+<p>Since every line has a ^ (line start), so each line matches the <code>grep</code>. Note
+that I ever tried</p>
+
+<p><code>
+$ cat /dev/crbif0rb0c0ttyS0 | grep . --line-buffered
+</code></p>
+
+<p>But this does not work. Only empty lines are printed, and I don't know why...</p>
+]]></content>
+  </entry>
+  
+</feed>

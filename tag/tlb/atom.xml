@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:tlb | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/tlb/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Duplicated TLB entries]]></title>
+    <link href="http://jhshi.me/2012/05/02/os161-duplicated-tlb-entries/"/>
+    <updated>2012-05-02T13:18:47-04:00</updated>
+    <id>http://jhshi.me/2012/05/02/os161-duplicated-tlb-entries</id>
+    <content type="html"><![CDATA[<p>Sys161 will panic if you try to write a TLB entry with a <code>entryhi</code>, but
+there are already a TLB entry with the same <code>entryhi</code> but in a different TLB
+slot. This is because <strong>entryhi should be a UNIQUE key in the TLB bank.</strong></p>
+
+<!-- more -->
+
+
+<p>When you want to update a TLB entry (e.g., shoot down a TLB entry, or set the
+Dirty bit, etc.), you need to first use <code>tlb_probe</code> to query the TLB bank to get
+the TLB slot index and then use <code>tlb_read</code> to read the original value, and then
+use <code>tlb_write</code> to write the updated TLB entry value to this slot. <strong>But what
+if there is a interrupt after you <code>tlb_probe</code> but before <code>tlb_read</code>?</strong> Chance
+maybe that the TLB bank is totally refreshed so that you read a stale value
+and also write a stale value. Things get totally messed up and errors such as
+"Duplicated TLB entries" may occur.</p>
+
+<p>To resolve this, <strong>you need to protect your whole "<code>tlb_probe</code>-><code>tlb_read</code>->
+<code>tlb_write</code>" flow and make sure that this flow won't get interrupted.</strong> So you
+really want to disable interrupt (<code>int x = splhigh()</code>) before you do <code>tlb_probe</code>
+and re-enable it (<code>splx(x)</code>) after <code>tlb_write</code>. Alternatively, you can also use a
+spin lock to protect your access to TLB.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 TLB Miss and Page Fault]]></title>
+    <link href="http://jhshi.me/2012/04/27/os161-tlb-miss-and-page-fault/"/>
+    <updated>2012-04-27T19:27:26-04:00</updated>
+    <id>http://jhshi.me/2012/04/27/os161-tlb-miss-and-page-fault</id>
+    <content type="html"><![CDATA[<p>Now we've set up user address space, it's time to handle TLB/page faults. Note
+that there is a difference between TLB and page faults:</p>
+
+<ul>
+<li><p>TLB fault means the hardware don't know how to translate a virtual address
+since the translation didn't present in any TLB entry. So the hardware raise a
+TLB fault to let the kernel decide how to translate that address.</p></li>
+<li><p>Page fault means the user program tries to access a page that is not in
+memory, either not yet allocated or swapped out.</p></li>
+</ul>
+
+
+<!-- more -->
+
+
+<h3>TLB Entry Format</h3>
+
+<p>In sys161, which simulates MIPS R3000, there are totally 64 TLB entries. Each
+entry is a 64-bit value that has the following format:</p>
+
+<p><img class="center" src="/images/2012-04-27-mipsr3000-tlb.png"></p>
+
+<p>Section 18.6 of <a href="http://pages.cs.wisc.edu/~remzi/OSFEP/vm-tlbs.pdf">this document</a> contains a detailed description of the
+meaning of each bits. But briefly, VPN (abbr. for Virtual Page Frame Number)
+is the high 20 bits of a virtual address and PPN is the high 20 bits of a
+physical address space. <strong>When Dirty bit is 1, it means this page is writable,
+otherwise, it's read-only.</strong> When Valid bit is 1, it means this TLB entry
+contains a valid translation.</p>
+
+<p>In OS161, we can just ignore the ASID part and Global bit, unless you really
+want to do some tricks such as multiplex TLB among processes instead of just
+shoot down all TLB entries when context switch. Also, we can ignore the NoCache
+bit.</p>
+
+<h3>TLB Miss Type</h3>
+
+<p>When translation a virtual address, the hardware will issue a parallel search
+in all the TLB entries, using the VPN as a search key. If the hardware failed to
+find a entry or find a entry but with Valid bit is 0, a TLB Miss will be
+issued. The miss type could be <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, depending on
+whether it's a read or write operation. On the other hand, if it's a write
+operation and hardware find a valid TLB entry of VPN, but the Dirty bit is 0,
+then this is also a TLB miss with type <code>VM_FAULT_READONLY</code>.</p>
+
+<p>If none of above cases happen, then this is a TLB hit, everybody is happy :-)</p>
+
+<h3>TLB Manipulate Utils</h3>
+
+<p>Before we discuss how to handle a TLB fault. We first take a look at how
+to manipulate the TLB entries. The functions that access TLB can be found
+at <code>$OS161_SRC/kern/arch/mips/include/tlb.h</code>. Four routines are provided. And the
+comments there are quite clear. We use <code>tlb_probe</code> to query the TLB bank, and use
+<code>tlb_read</code>/<code>tlb_write</code> to read/write a specific TLB entry, and use <code>tlb_random</code> to
+let the hardware decide which entry to write to.</p>
+
+<h3>Finally, handle TLB Miss</h3>
+
+<p>On a TLB fault, the first thing to do is to check whether the faulting address
+is a valid user space address. Since it's possible that the fault is caused by
+<code>copyin</code>/<code>copyout</code>, which expect an TLB fault. So what's an "valid" user space
+address?</p>
+
+<ul>
+<li>User code or date segment</li>
+<li>User heap, between <code>heap_start</code> and <code>heap_end</code></li>
+<li>User stack</li>
+</ul>
+
+
+<p>If the address is invalid, then we directly return some non-zero error code, to
+let the <code>badfault_func</code> capture the fault.</p>
+
+<p>For <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, we just walk current address space's page
+table, and see if that page actually exists (by checking the <code>PTE_P</code> bit). If no then we just
+allocate a new page and modify the page table entry to insert the mapping
+(since we haven't turn on swap yet, so <strong>not exist means this is the first time
+we access this page</strong>). The permissions of the newly allocated page should be
+set according to the region information we stored in <code>struct addrspace</code>.
+Finally we just use <code>tlb_random</code> to insert this mapping to TLB. Of course,
+you can adopt some TLB algorithm here that choosing a specific TLB victim. But
+<strong>only do this when you have all your VM system working.</strong></p>
+
+<p>For <code>VM_FAULT_READONLY</code>, <strong>this page is already in memory and the mapping is
+already in TLB bank</strong>, just that the Dirty bit is 0 and user try to write
+this page. So <strong>we first check if user can really write this page</strong>, maybe
+by the access bits in the low 12 bits of page table entry. (Recall that in
+<code>as_define_region</code>, user passed in some attributes like readable, writable and
+executable. You should record them down there and use them to check here).</p>
+
+<p>If user want to write a page that he has no rights to write, then this is a
+access violation. You can just panic here or more gracefully, kill current
+process. But if user can actually write this page, then we first query TLB
+bank to get the index of the TLB entry, set the Dirty bit of <code>entrylo</code> and write
+it back use <code>tlb_write</code>. Don't forget to change the physical page's state to
+<code>PAGE_STATE_DIRTY</code> (It's useless now but will be useful in swapping)</p>
+
+<p>The above are pretty much what <code>vm_fault</code> does. Three extra tips:</p>
+
+<ul>
+<li><p>Since TLB is also a shared resource, so you'd better <strong>use a lock to
+protect the access to it</strong>. And it's better be a <code>spinlock</code> since sometimes we
+perform TLB operations in interrupt handler, where we don't want to sleep.</p></li>
+<li><p><strong>Do not print anything inside <code>vm_fault</code>.</strong> <code>kprintf</code> may touch some of the
+TLB entry so that the TLB has been changed between the miss and <code>vm_fault</code>, which
+can lead to some really weird bugs.</p></li>
+<li><p><strong>Assumption is the source of all evil. Use a lot KASSET to make your
+assumption explicit and check if they are right.</strong></p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

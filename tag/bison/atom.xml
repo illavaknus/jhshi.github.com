@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:bison | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/bison/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[LFS 6.9.1: command substitution: line 3: syntax error near unexpected token  `)']]></title>
+    <link href="http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token/"/>
+    <updated>2012-09-18T14:57:23-04:00</updated>
+    <id>http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token</id>
+    <content type="html"><![CDATA[<p>I encountered this error when compiling glibc. The apparent cause is that
+bash can not deal with brackets correctly. So even a simple command like echo
+<code>$(ls)</code> will fail with the same error (command substitution).</p>
+
+<!-- more -->
+
+
+<p>The most suspicious cause is that when compile bash in section 5.15.1, I use
+<code>byacc</code> for walk around when the compiler complained the absence of <code>yacc</code>. <strong>Bash
+uses yacc grammer rules and only GNU bison will generate the correct parsing
+code for the bash build</strong>. So I un-installed byacc and installed bison. Then</p>
+
+<ul>
+<li><p>Make a soft link at <code>/usr/bin/yacc</code> to bison</p></li>
+<li><p>Recompile all the package after 5.10 (tcl) and before 5.15 (include 5.15)</p></li>
+<li><p>Test if problem solved using echo <code>$(ls)</code> command</p></li>
+<li><p>If yes, then using <code>/tools/bin/bash --login +h</code> to lunch the new bash</p></li>
+</ul>
+
+
+<p>Also see:</p>
+
+<ul>
+<li><a href="http://www.mail-archive.com/lfs-support@linuxfromscratch.org/msg16549.html">http://www.mail-archive.com/lfs-support@linuxfromscratch.org/msg16549.html</a></li>
+<li><a href="http://unix.stackexchange.com/questions/28369/linux-from-scratchs-bash-problem-syntax-error">http://unix.stackexchange.com/questions/28369/linux-from-scratchs-bash-problem-syntax-error</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

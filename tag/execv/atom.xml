@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:execv | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/execv/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 execv System Call]]></title>
+    <link href="http://jhshi.me/2012/03/11/os161-execv-system-call/"/>
+    <updated>2012-03-11T18:27:47-04:00</updated>
+    <id>http://jhshi.me/2012/03/11/os161-execv-system-call</id>
+    <content type="html"><![CDATA[<p>Basically, <code>execv</code> do more or less the same thing with <code>runprogram</code> resided in
+<code>$OS161_SRC/kern/syscall/runprogram.c</code>. The overall flow of <code>sys_execv</code> are:</p>
+
+<ol>
+<li><p><strong>Copy arguments into kernel buffer</strong></p></li>
+<li><p>Open the executable, create a new address space and load the elf into it</p></li>
+<li><p><strong>Copy the arguments into user stack</strong></p></li>
+<li><p>Return user mode using <code>enter_new_process</code></p></li>
+</ol>
+
+
+<!-- more -->
+
+
+<p>Note that I highlighted step 1 and 3 since they are the trickiest part of
+execv, step 2 and 4 are just the same with <code>runprogram</code>.</p>
+
+<h3>Copy arguments into kernel buffer</h3>
+
+<p>In whichever way to do this, one of step 1 and 3 must be complicated. I choose
+to carefully pack the arguments into a kernel buffer and then just directly
+copy this buffer into user stack in bulk. Here are two points need special
+attention no matter how you do it.</p>
+
+<ul>
+<li>Don't trust any pointers user passed in. Any of the <code>args[i]</code>, <code>NULL</code>, invalid
+user pointer (e.g. <code>0x40000000</code>), kernel pointer (e.g., <code>0xc0000000</code>)... you name
+it. So <strong>do every copy use <code>copyin</code></strong></li>
+<li>In MIPS, <strong>pointers must be aligned by 4</strong>. So don't forget to padding when
+necessary</li>
+</ul>
+
+
+<p>For convenience, assume that arguments are {"foo", "os161", "execv", <code>NULL</code>}.
+Then after packing, my kernel buffer looks like this:</p>
+
+<p><img class="center /images/2012-03-11-kargv.png  Arguments in" src="<code>kargv</code>"></p>
+
+<p><strong>Typo: </strong><code>kargv[2]</code> should be 28, not 26.</p>
+
+<p>Note that <code>kargv[i]</code> stores the offset of the <code>i</code>'th arguments <strong>within the kargv
+array</strong>, since up to now we don't know their real user address yet (although we
+can actually calculate that out...).</p>
+
+<h3>Copy the arguments into user stack</h3>
+
+<p>Why user stack, not anywhere else? Because it's the only space we know for
+sure. We can use <code>as_define_stack</code> to get the value of initial stack pointer
+(normally <code>0x8000000</code>, aka <code>USER_SPACE_TOP</code>). So what we do is</p>
+
+<ol>
+<li>Fill <code>kargv[i]</code> with actual user space pointer, and</li>
+<li>Copy <code>kargv</code> array into the stack</li>
+<li>Minus <code>stackptr</code> by the length of <code>kargv</code> array.</li>
+</ol>
+
+
+<p>Note that <strong>we must modify <code>kargs[i]</code> before we do the actual copy</strong>,
+otherwise some weird bus error or TLB miss will occur.</p>
+
+<p>The steps are shown as follows (here we assume <code>stackptr</code> initial value is
+<code>0x8000000</code>):</p>
+
+<p><img class="center /images/2012-03-11-stackptr.png Change of" src="<code>stackptr</code>"></p>
+]]></content>
+  </entry>
+  
+</feed>

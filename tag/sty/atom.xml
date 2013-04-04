@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:sty | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/sty/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Set sty file path of Latex in Linux]]></title>
+    <link href="http://jhshi.me/2011/11/13/set-sty-file-path-of-latex-in-fedora-linux/"/>
+    <updated>2011-11-13T10:19:33-05:00</updated>
+    <id>http://jhshi.me/2011/11/13/set-sty-file-path-of-latex-in-fedora-linux</id>
+    <content type="html"><![CDATA[<p>From time to time, you may want to compose your own sty files to eliminate
+long header in your tex file. But it's boring to put you sty file in the same
+directory of your tex file every time since you really want your sty file to be
+common, i.e., can be accessed everywhere in your system.</p>
+
+<!-- more -->
+
+
+<p>One way to achieve this is put your sty file in the system latex directory
+(e.g. <code>/usr/share/texlive/texmf-dist/tex/latex</code>), and then use <code>texhash</code> to
+refresh the database.</p>
+
+<p>But if you would prefer not touch the system directory and want to put the sty
+file somewhere that easy to access and backup, that will not be a very good
+practice.</p>
+
+<p>So you can just tell latex where to find its sty files, i.e.,
+set the system sty file looking up path. Do this by editing
+<code>/usr/share/texlive/texmf/web2c/texmf.cnf</code>. Find the variable called
+<code>TEXINPUTS.tex</code>, add your own sty path there. Don't forget to separate the
+directory using ";" and append "//" to the last directory.</p>
+
+<p>When you finish, execute <code>texhash</code> in a terminal. Then you can just feel free
+to put your sty files in the directory you just specified, latex will now know
+where to find them.</p>
+
+<p>BTW, the comments in <code>texmf.cnf</code> are very useful if you want to do any other tricks.</p>
+]]></content>
+  </entry>
+  
+</feed>

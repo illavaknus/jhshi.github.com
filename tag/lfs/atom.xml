@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:lfs | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/lfs/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[LFS 6.9.1: command substitution: line 3: syntax error near unexpected token  `)']]></title>
+    <link href="http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token/"/>
+    <updated>2012-09-18T14:57:23-04:00</updated>
+    <id>http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token</id>
+    <content type="html"><![CDATA[<p>I encountered this error when compiling glibc. The apparent cause is that
+bash can not deal with brackets correctly. So even a simple command like echo
+<code>$(ls)</code> will fail with the same error (command substitution).</p>
+
+<!-- more -->
+
+
+<p>The most suspicious cause is that when compile bash in section 5.15.1, I use
+<code>byacc</code> for walk around when the compiler complained the absence of <code>yacc</code>. <strong>Bash
+uses yacc grammer rules and only GNU bison will generate the correct parsing
+code for the bash build</strong>. So I un-installed byacc and installed bison. Then</p>
+
+<ul>
+<li><p>Make a soft link at <code>/usr/bin/yacc</code> to bison</p></li>
+<li><p>Recompile all the package after 5.10 (tcl) and before 5.15 (include 5.15)</p></li>
+<li><p>Test if problem solved using echo <code>$(ls)</code> command</p></li>
+<li><p>If yes, then using <code>/tools/bin/bash --login +h</code> to lunch the new bash</p></li>
+</ul>
+
+
+<p>Also see:</p>
+
+<ul>
+<li><a href="http://www.mail-archive.com/lfs-support@linuxfromscratch.org/msg16549.html">http://www.mail-archive.com/lfs-support@linuxfromscratch.org/msg16549.html</a></li>
+<li><a href="http://unix.stackexchange.com/questions/28369/linux-from-scratchs-bash-problem-syntax-error">http://unix.stackexchange.com/questions/28369/linux-from-scratchs-bash-problem-syntax-error</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[LFS 5.5.1: Change GCC's Stack Protection Option]]></title>
+    <link href="http://jhshi.me/2012/09/08/change-gccs-stack-protection-option-in-lfs/"/>
+    <updated>2012-09-08T11:39:27-04:00</updated>
+    <id>http://jhshi.me/2012/09/08/change-gccs-stack-protection-option-in-lfs</id>
+    <content type="html"><![CDATA[<p>In <a href="http://www.linuxfromscratch.org/lfs/view/stable/chapter05/gcc-pass1.html">Chapter 5.5</a>, there is one step that fixes the GCC's stack protection
+detection problem. The command is:</p>
+
+<p><code>bash
+sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
+</code></p>
+
+<!-- more -->
+
+
+<p>This command seems weird to me at first glance. After digging a little more
+about <code>sed</code> command, it's intention is much clear.</p>
+
+<ul>
+<li><p><strong>-i</strong> means change the file (i.e., <code>gcc/configure</code>) in place</p></li>
+<li><p><strong>/k prot/</strong> is the pattern. If you look at <code>gcc/configure</code>, you'll find a
+line (around 26695) of comment that says:</p></li>
+</ul>
+
+
+<p>```bash</p>
+
+<h1>Test for stack protector support in target C library</h1>
+
+<p>```</p>
+
+<p>And you'll see that this is the only occurrence of "stack protector" (as well
+as <code>k prot</code>. I think we'd better use <code>/stack protector/</code> as the pattern for
+easy understanding.</p>
+
+<ul>
+<li><p><strong>a</strong> means append a line after the line that contains the pattern. (<a href="http://www.grymoire.com/Unix/Sed.html#uh-40">sed document</a>)</p></li>
+<li><p><strong>gcc_cv_libc_provides_ssp=yes</strong> is the actual line being appended.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

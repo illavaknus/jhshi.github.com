@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:bash | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/bash/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Bash Alias with Argument]]></title>
+    <link href="http://jhshi.me/2011/11/24/bash-alias-with-argument/"/>
+    <updated>2011-11-24T14:47:51-05:00</updated>
+    <id>http://jhshi.me/2011/11/24/bash-alias-with-argument</id>
+    <content type="html"><![CDATA[<p>Alias is a very useful feature of shell (e.g. bash). For example, I have this
+line in my <code>.bashrc</code>:</p>
+
+<p><code>bash
+alias ll="ls -alF | more"
+</code></p>
+
+<!-- more -->
+
+
+<p>So I can simply use <code>ll</code> to view all the files in current directory and view
+them in my favorite style.</p>
+
+<p>It works fine until one day, I want to view the files in a sub directory
+instead of current directory, so I tried:</p>
+
+<p><code>bash
+$ ll subdirectory/
+</code></p>
+
+<p>But it failed - still just display the content of current directory. The reason
+is, for bash, the above command is interpreted as:</p>
+
+<p><code>bash
+$ ls -alF | more subdirectory/
+</code></p>
+
+<p>But what I have in mind is actually:</p>
+
+<p><code>bash
+$ ls -alF subdirectory | more
+</code></p>
+
+<p>I Googled and found that alias can just not take arguments, but devise a simple
+functions is applicable, so I have the below code instead of the <code>ll</code> alias:</p>
+
+<p>```bash
+unalias ll
+function ll(){</p>
+
+<pre><code>ls -alF "$@" | more;
+</code></pre>
+
+<p>}
+```</p>
+
+<p><strong>We need to first unalias since by default, <code>ll</code> is aliased as <code>ls -l
+--color=auto</code>. If we don't remove the alias, our function won't be invoked.</strong></p>
+]]></content>
+  </entry>
+  
+</feed>

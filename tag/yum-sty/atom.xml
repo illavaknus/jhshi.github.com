@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:yum sty | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/yum-sty/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Directly install sty files using yum]]></title>
+    <link href="http://jhshi.me/2012/02/11/directly-install-sty-files-using-yum/"/>
+    <updated>2012-02-11T17:10:06-05:00</updated>
+    <id>http://jhshi.me/2012/02/11/directly-install-sty-files-using-yum</id>
+    <content type="html"><![CDATA[<p>Use the following command to install sty files, say <code>multirow.sty</code>, using yum:</p>
+
+<p><code>
+$sudo yum -y install 'tex(multirow.sty)'
+</code></p>
+]]></content>
+  </entry>
+  
+</feed>

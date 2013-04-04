@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:fedora | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/fedora/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Directly install sty files using yum]]></title>
+    <link href="http://jhshi.me/2012/02/11/directly-install-sty-files-using-yum/"/>
+    <updated>2012-02-11T17:10:06-05:00</updated>
+    <id>http://jhshi.me/2012/02/11/directly-install-sty-files-using-yum</id>
+    <content type="html"><![CDATA[<p>Use the following command to install sty files, say <code>multirow.sty</code>, using yum:</p>
+
+<p><code>
+$sudo yum -y install 'tex(multirow.sty)'
+</code></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Fix for Google Calendar Crash in Chrome/Chromium on Fedora]]></title>
+    <link href="http://jhshi.me/2012/01/31/fix-for-google-calendar-crash-in-chromechromium-on-fedora/"/>
+    <updated>2012-01-31T17:20:26-05:00</updated>
+    <id>http://jhshi.me/2012/01/31/fix-for-google-calendar-crash-in-chromechromium-on-fedora</id>
+    <content type="html"><![CDATA[<p>This problem is caused by the collision of chrome/chromium sandbox and Fedora's
+SELinux, as explained <a href="https://bugzilla.redhat.com/show_bug.cgi?id=710273#c1">here</a>. The same problem occurs when you open
+twitter (see <a href="http://blog.randell.ph/2011/06/11/fix-for-aw-snap-while-loading-twitter-in-fedora-15-with-selinux-enforcing-enabled/">this</a> and <a href="http://jamesmcdonald.id.au/it-tips/chromium-browser-fedora-15-twitter-aw-snap">this</a>).</p>
+
+<!-- more -->
+
+
+<p>The solution is</p>
+
+<p>```
+restorecon -R ~/.config</p>
+
+<h1>install restorecond</h1>
+
+<p>su -c 'yum install policycoreutils-restorecond'</p>
+
+<h1>enable it</h1>
+
+<p>su -c 'chkconfig restorecond on'
+```</p>
+]]></content>
+  </entry>
+  
+</feed>

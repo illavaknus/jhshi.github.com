@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:trap | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/trap/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Use trap to Do Cleanup Work When Script Terminates]]></title>
+    <link href="http://jhshi.me/2012/05/07/use-trap-to-do-cleanup-work-when-script-terninates/"/>
+    <updated>2012-05-07T15:08:56-04:00</updated>
+    <id>http://jhshi.me/2012/05/07/use-trap-to-do-cleanup-work-when-script-terninates</id>
+    <content type="html"><![CDATA[<p>Now I have the script that monitoring the output of several UART devices:</p>
+
+<!-- more -->
+
+
+<p>```bash</p>
+
+<h1>!/bin/bash</h1>
+
+<p>for i in <code>seq 0 7</code>; do</p>
+
+<h1>use grep here to enforce line-buffered output, so concurrent</h1>
+
+<h1>input from UART isn't messed up</h1>
+
+<pre><code>cat /dev/crbif0rb0c${i}ttyS0 | grep ^ --line-buffered &amp;
+</code></pre>
+
+<p>done</p>
+
+<p>wait
+```</p>
+
+<p>But there is one problem, when you terminate the script (<code>ctrl+c</code>), these cat
+processes won't be killed, so that the next time you run this script, you'll not
+be able to access these UART device since they are busy.</p>
+
+<p>To solve this problem, we need to do some cleanup work when the script
+terminates. In this case, we need to kill these <code>cat</code> processes. We can use the
+<code>trap</code> command to do this. Basically, <strong>trap enables you to register a kind of
+handler for different kind of signals</strong>.</p>
+
+<p>In this case, we can add a line into the script:</p>
+
+<p>```bash
+trap "pkill -P $$" SIGINT</p>
+
+<p>for i in <code>seq 0 7</code>; do</p>
+
+<h1>use grep here to enforce line-buffered output, so concurrent</h1>
+
+<h1>input from UART isn't messed up</h1>
+
+<pre><code>cat /dev/crbif0rb0c${i}ttyS0 | grep ^ --line-buffered &amp;
+</code></pre>
+
+<p>done</p>
+
+<p>wait
+```</p>
+
+<p><code>$$</code> is the process id of the script. <code>pkill -P $$</code> will kill all the child
+processes of <code>$$</code>. So that when the script terminates (<code>SIGINT</code> signal from
+<code>ctrl+c</code>), this <code>pkill</code> command will be executed and all the cat processes will
+be killed.</p>
+
+<p>Thanks to these post.</p>
+
+<ul>
+<li><a href="http://steve-parker.org/sh/trap.shtml">http://steve-parker.org/sh/trap.shtml</a></li>
+<li><a href="http://www.davidpashley.com/articles/writing-robust-shell-scripts.html#id2564782">http://www.davidpashley.com/articles/writing-robust-shell-scripts.html#id2564782</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

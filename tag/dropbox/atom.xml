@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:dropbox | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/dropbox/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Dropbox: Unable to monitor filesystem]]></title>
+    <link href="http://jhshi.me/2012/07/11/dropbox-unable-to-monitor-filesystem/"/>
+    <updated>2012-07-11T11:39:14-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/dropbox-unable-to-monitor-filesystem</id>
+    <content type="html"><![CDATA[<p>Sometime this error occurs that says:</p>
+
+<blockquote><p>"Unable to monitor file system. Please run: echo 100000 | sudo tee
+/proc/sys/fs/inotify/max_user_watches and restart Dropbox to correct the
+problem.</p></blockquote>
+
+<!-- more -->
+
+
+<p>We need to adjust the system setting on the maximum file number that Dropbox
+can watch.</p>
+
+<p>The following command will solve your pain:</p>
+
+<p><code>bash
+$ echo fs.inotify.max_user_watches=100000 | sudo tee -a /etc/sysctl.conf; sudo sysctl -p
+</code></p>
+
+<p>Here is the tip from Dropbox website.</p>
+
+<p><a href="https://www.dropbox.com/help/145/en](https://www.dropbox.com/help/145/en">https://www.dropbox.com/help/145/en](https://www.dropbox.com/help/145/en</a></p>
+]]></content>
+  </entry>
+  
+</feed>

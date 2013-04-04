@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:chrome | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/chrome/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Vimium Not Working in Google Search Results Page]]></title>
+    <link href="http://jhshi.me/2013/03/15/vimium-not-working-in-google-search-results-page/"/>
+    <updated>2013-03-15T02:50:16-04:00</updated>
+    <id>http://jhshi.me/2013/03/15/vimium-not-working-in-google-search-results-page</id>
+    <content type="html"><![CDATA[<p>If you're Vim user, then you must try <a href="https://chrome.google.com/webstore/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb?hl=en">Vimium</a>. It makes your browsing
+much much comfortable!</p>
+
+<!-- more -->
+
+
+<p>These days, I found that Vimium commands (<code>j</code>, <code>k</code>, <code>f</code>) don't work on Google search
+results page. But works just in in any other pages. I tried turning the instant
+search off, logging out my account in Google's homepage, turning of personalized
+search results, etc. None of those work.</p>
+
+<p>Then I found that Vimium only stop working if I use Chrome's Omnibox to search.
+That is, if I do the search in Google's home page instead of Chrome's Omnibox,
+then everything is fine. I suspect that some extra flags in Omnibox's default
+search pattern is the reason why Vimium refused to work.</p>
+
+<p>But Omnibox is so convenience to use (<code>Alt+D</code> to focus &amp; search). Opening
+Google's homepage every time you need search will certainly be another pain. So
+I changed the default behavior of Chrome's Omnibox. Unfortunately, the built-in
+Google search pattern is unchangeable, so I added an new search engine entry
+and set it as default. Here is the fields of the new entry:</p>
+
+<p><code>
+Name: Google (or whatever you want)
+Keyword: Google (or whatever you want)
+Search Pattern: http://www.google.com/search?q=%s
+</code></p>
+
+<p>Here is a more detailed information about Google's search URL. Add whatever you
+need, but keep it minimal, in case you screwed up with Vimium again :-)</p>
+
+<p><a href="http://www.blueglass.com/blog/google-search-url-parameters-query-string-anatomy/">http://www.blueglass.com/blog/google-search-url-parameters-query-string-anatomy/</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Fix for Google Calendar Crash in Chrome/Chromium on Fedora]]></title>
+    <link href="http://jhshi.me/2012/01/31/fix-for-google-calendar-crash-in-chromechromium-on-fedora/"/>
+    <updated>2012-01-31T17:20:26-05:00</updated>
+    <id>http://jhshi.me/2012/01/31/fix-for-google-calendar-crash-in-chromechromium-on-fedora</id>
+    <content type="html"><![CDATA[<p>This problem is caused by the collision of chrome/chromium sandbox and Fedora's
+SELinux, as explained <a href="https://bugzilla.redhat.com/show_bug.cgi?id=710273#c1">here</a>. The same problem occurs when you open
+twitter (see <a href="http://blog.randell.ph/2011/06/11/fix-for-aw-snap-while-loading-twitter-in-fedora-15-with-selinux-enforcing-enabled/">this</a> and <a href="http://jamesmcdonald.id.au/it-tips/chromium-browser-fedora-15-twitter-aw-snap">this</a>).</p>
+
+<!-- more -->
+
+
+<p>The solution is</p>
+
+<p>```
+restorecon -R ~/.config</p>
+
+<h1>install restorecond</h1>
+
+<p>su -c 'yum install policycoreutils-restorecond'</p>
+
+<h1>enable it</h1>
+
+<p>su -c 'chkconfig restorecond on'
+```</p>
+]]></content>
+  </entry>
+  
+</feed>

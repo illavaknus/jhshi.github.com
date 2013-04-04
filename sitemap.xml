@@ -1,8 +1,44 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
+        <loc>
+            http://jhshi.me/2011/11/10/pdflatex-error-while-loading-shared-libraries-libpoppler-so-13/
+        </loc>
+        <lastmod>2013-04-04T12:02:09-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2011/11/13/set-sty-file-path-of-latex-in-fedora-linux/</loc>
+        <lastmod>2013-04-04T12:20:51-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2011/11/17/figure-over-two-columns-in-latex/</loc>
+        <lastmod>2013-04-04T12:19:07-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2011/11/18/center-the-caption-of-figure-or-table/</loc>
+        <lastmod>2013-04-04T12:12:58-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2011/11/24/bash-alias-with-argument/</loc>
+        <lastmod>2013-04-04T12:49:54-04:00</lastmod>
+    </url>
+    <url>
+        <loc>
+            http://jhshi.me/2012/01/31/fix-for-google-calendar-crash-in-chromechromium-on-fedora/
+        </loc>
+        <lastmod>2013-04-04T12:47:05-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2012/02/11/directly-install-sty-files-using-yum/</loc>
+        <lastmod>2013-04-04T12:19:16-04:00</lastmod>
+    </url>
+    <url>
         <loc>http://jhshi.me/2012/02/14/error-function-declaration-isnt-a-prototype/</loc>
         <lastmod>2013-04-03T18:45:03-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2012/02/14/quick-switch-between-source-and-header-files-in-vim/</loc>
+        <lastmod>2013-04-04T12:06:30-04:00</lastmod>
     </url>
     <url>
         <loc>http://jhshi.me/2012/03/11/os161-fork-system-call/</loc>
@@ -85,12 +121,52 @@
         <lastmod>2013-04-03T17:43:21-04:00</lastmod>
     </url>
     <url>
+        <loc>http://jhshi.me/2012/05/04/line-buffered-cat/</loc>
+        <lastmod>2013-04-04T12:43:34-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2012/05/07/use-trap-to-do-cleanup-work-when-script-terninates/</loc>
+        <lastmod>2013-04-04T12:10:55-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2012/06/22/specify-graphicspath-in-latex/</loc>
+        <lastmod>2013-04-04T13:42:45-04:00</lastmod>
+    </url>
+    <url>
+        <loc>
+            http://jhshi.me/2012/07/11/ssh-error-agent-admitted-failure-to-sign-using-the-key/
+        </loc>
+        <lastmod>2013-04-04T12:40:55-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2012/07/11/dropbox-unable-to-monitor-filesystem/</loc>
+        <lastmod>2013-04-04T12:39:18-04:00</lastmod>
+    </url>
+    <url>
         <loc>http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-i/</loc>
         <lastmod>2013-04-03T19:54:19-04:00</lastmod>
     </url>
     <url>
         <loc>http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-ii/</loc>
         <lastmod>2013-04-03T20:20:59-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2012/09/08/change-gccs-stack-protection-option-in-lfs/</loc>
+        <lastmod>2013-04-04T12:36:58-04:00</lastmod>
+    </url>
+    <url>
+        <loc>
+            http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token/
+        </loc>
+        <lastmod>2013-04-04T12:33:02-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2013/02/20/using-cscope-inside-vim/</loc>
+        <lastmod>2013-04-04T12:28:28-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2013/02/26/eclim-e218-when-open-a-file-in-new-tab/</loc>
+        <lastmod>2013-04-04T13:49:54-04:00</lastmod>
     </url>
     <url>
         <loc>http://jhshi.me/2013/02/26/use-ant-exec-task-for-linux-shell-commands/</loc>
@@ -110,10 +186,10 @@
     </url>
     <url>
         <loc>http://jhshi.me/blog/archives/</loc>
-        <lastmod>2013-04-03T20:20:59-04:00</lastmod>
+        <lastmod>2013-04-04T13:49:54-04:00</lastmod>
     </url>
     <url>
         <loc>http://jhshi.me/</loc>
-        <lastmod>2013-04-03T20:20:59-04:00</lastmod>
+        <lastmod>2013-04-04T13:49:54-04:00</lastmod>
     </url>
 </urlset>

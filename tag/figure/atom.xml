@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:figure | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/figure/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Center the Caption of Figure or Table]]></title>
+    <link href="http://jhshi.me/2011/11/18/center-the-caption-of-figure-or-table/"/>
+    <updated>2011-11-18T10:30:03-05:00</updated>
+    <id>http://jhshi.me/2011/11/18/center-the-caption-of-figure-or-table</id>
+    <content type="html"><![CDATA[<p>In latex, the caption of figure or table is aligned left by default. Sometimes,
+it's not that beautiful, especially when your article is two column.</p>
+
+<!-- more -->
+
+
+<p>To fix this, use the <code>caption</code> package with <code>center</code> as the option.</p>
+
+<p><code>
+\usepackage[center]{caption}
+</code></p>
+
+<p>If you like, you can also substitute <code>center</code> with <code>left</code> or <code>right</code></p>
+
+<p>Here is a <a href="http://mirror.math.ku.edu/tex-archive/macros/latex/contrib/caption/caption-eng.pdf">detailed manual</a> of <code>caption</code> package.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Figure Over Two Columns in Latex]]></title>
+    <link href="http://jhshi.me/2011/11/17/figure-over-two-columns-in-latex/"/>
+    <updated>2011-11-17T16:26:21-05:00</updated>
+    <id>http://jhshi.me/2011/11/17/figure-over-two-columns-in-latex</id>
+    <content type="html"><![CDATA[<p>You may often find a table or figure is too big to fit into one column when
+your article has two columns. Use this to insert a figure (same with table) and
+it will save you:</p>
+
+<!-- more -->
+
+
+<p><code>latex
+\begin{figure*}
+% figure here
+\end{figure*}
+</code></p>
+
+<p>Note the star (<code>*</code>) appended after figure? That's the trick.</p>
+]]></content>
+  </entry>
+  
+</feed>

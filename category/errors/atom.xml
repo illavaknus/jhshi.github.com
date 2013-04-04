@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: errors | Pearls in Life]]></title>
+  <link href="http://jhshi.me/category/errors/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Eclim E218 When Open a File in New Tab]]></title>
+    <link href="http://jhshi.me/2013/02/26/eclim-e218-when-open-a-file-in-new-tab/"/>
+    <updated>2013-02-26T02:24:45-05:00</updated>
+    <id>http://jhshi.me/2013/02/26/eclim-e218-when-open-a-file-in-new-tab</id>
+    <content type="html"><![CDATA[<p>In the directory sub window, when I use <code>T</code> to open a file in new tab, the
+following error message will occur:</p>
+
+<!-- more -->
+
+
+<p><code>
+No matching autocommands
+Error detected while processing function eclim#project#tree#ProjectTree..eclim#project#tree#ProjectTreeOpen..eclim#display#window#VerticalToolWindowOpen:
+line 78:
+E218: autocommand nesting too deep
+Error detected while processing function 53_OpenFile..eclim#tree#ExecuteAction:
+line 12:
+E171: Missing :endif
+Error detected while processing function 53_OpenFile:
+line 8:
+E171: Missing :endif
+</code></p>
+
+<p>To fix this, apply the following patch to <code>$HOME/.vim/eclim/plugin/project.vim</code>
+described in <a href="https://github.com/ervandew/eclim/commit/597aeb31fa4ea1e2c102547871935dbb89cf9202">here</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[LFS 6.9.1: command substitution: line 3: syntax error near unexpected token  `)']]></title>
+    <link href="http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token/"/>
+    <updated>2012-09-18T14:57:23-04:00</updated>
+    <id>http://jhshi.me/2012/09/18/lfs-6-9-1-command-substitution-line-3-syntax-error-near-unexpected-token</id>
+    <content type="html"><![CDATA[<p>I encountered this error when compiling glibc. The apparent cause is that
+bash can not deal with brackets correctly. So even a simple command like echo
+<code>$(ls)</code> will fail with the same error (command substitution).</p>
+
+<!-- more -->
+
+
+<p>The most suspicious cause is that when compile bash in section 5.15.1, I use
+<code>byacc</code> for walk around when the compiler complained the absence of <code>yacc</code>. <strong>Bash
+uses yacc grammer rules and only GNU bison will generate the correct parsing
+code for the bash build</strong>. So I un-installed byacc and installed bison. Then</p>
+
+<ul>
+<li><p>Make a soft link at <code>/usr/bin/yacc</code> to bison</p></li>
+<li><p>Recompile all the package after 5.10 (tcl) and before 5.15 (include 5.15)</p></li>
+<li><p>Test if problem solved using echo <code>$(ls)</code> command</p></li>
+<li><p>If yes, then using <code>/tools/bin/bash --login +h</code> to lunch the new bash</p></li>
+</ul>
+
+
+<p>Also see:</p>
+
+<ul>
+<li><a href="http://www.mail-archive.com/lfs-support@linuxfromscratch.org/msg16549.html">http://www.mail-archive.com/lfs-support@linuxfromscratch.org/msg16549.html</a></li>
+<li><a href="http://unix.stackexchange.com/questions/28369/linux-from-scratchs-bash-problem-syntax-error">http://unix.stackexchange.com/questions/28369/linux-from-scratchs-bash-problem-syntax-error</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Dropbox: Unable to monitor filesystem]]></title>
+    <link href="http://jhshi.me/2012/07/11/dropbox-unable-to-monitor-filesystem/"/>
+    <updated>2012-07-11T11:39:14-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/dropbox-unable-to-monitor-filesystem</id>
+    <content type="html"><![CDATA[<p>Sometime this error occurs that says:</p>
+
+<blockquote><p>"Unable to monitor file system. Please run: echo 100000 | sudo tee
+/proc/sys/fs/inotify/max_user_watches and restart Dropbox to correct the
+problem.</p></blockquote>
+
+<!-- more -->
+
+
+<p>We need to adjust the system setting on the maximum file number that Dropbox
+can watch.</p>
+
+<p>The following command will solve your pain:</p>
+
+<p><code>bash
+$ echo fs.inotify.max_user_watches=100000 | sudo tee -a /etc/sysctl.conf; sudo sysctl -p
+</code></p>
+
+<p>Here is the tip from Dropbox website.</p>
+
+<p><a href="https://www.dropbox.com/help/145/en](https://www.dropbox.com/help/145/en">https://www.dropbox.com/help/145/en](https://www.dropbox.com/help/145/en</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ssh error: Agent admitted failure to sign using the key]]></title>
+    <link href="http://jhshi.me/2012/07/11/ssh-error-agent-admitted-failure-to-sign-using-the-key/"/>
+    <updated>2012-07-11T10:37:38-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/ssh-error-agent-admitted-failure-to-sign-using-the-key</id>
+    <content type="html"><![CDATA[<p>If you follow <a href="/2012/04/27/sshscp-without-password/">my previous post about ssh/scp without password</a>, but you
+got this error when you try to ssh to B on A, then you need to add RSA or DSA
+identities to the authentication agent. A ssh-add command on host A will solve
+your pain.</p>
+
+<!-- more -->
+
+
+<p>```bash
+$ ssh-add</p>
+
+<h1>Sample output</h1>
+
+<p>Identity added: /home/jack/.ssh/id_rsa (/home/jack/.ssh/id_rsa)
+```</p>
+
+<p><strong>Reference</strong></p>
+
+<p><a href="http://www.cyberciti.biz/faq/unix-appleosx-linux-bsd-agent-admitted-failuretosignusingkey/">http://www.cyberciti.biz/faq/unix-appleosx-linux-bsd-agent-admitted-failuretosignusingkey/</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[error: function declaration isn't a prototype]]></title>
+    <link href="http://jhshi.me/2012/02/14/error-function-declaration-isnt-a-prototype/"/>
+    <updated>2012-02-14T09:51:44-05:00</updated>
+    <id>http://jhshi.me/2012/02/14/error-function-declaration-isnt-a-prototype</id>
+    <content type="html"><![CDATA[<p>This error occurs when you try to declare a function with no arguments, and
+compile with <code>-Werror=strict-prototypes</code>, as follows:</p>
+
+<!-- more -->
+
+
+<p><code>c
+int foo();
+</code></p>
+
+<p>Fix it by declare it as</p>
+
+<p><code>c
+int foo(void);
+</code></p>
+
+<p>This is because in c, <code>foo(void)</code> takes no arguments while <code>foo()</code> takes a infinite
+number of arguments.</p>
+
+<p>Thanks to this <a href="http://stackoverflow.com/questions/42125/function-declaration-isnt-a-prototype">stackoverflow post</a></p>
+]]></content>
+  </entry>
+  
+</feed>

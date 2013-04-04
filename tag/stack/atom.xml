@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:stack | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/stack/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 SAME_STACK Check Fail in Trap]]></title>
+    <link href="http://jhshi.me/2012/05/02/os161-same_stack-check-fail-in-trap/"/>
+    <updated>2012-05-02T14:02:11-04:00</updated>
+    <id>http://jhshi.me/2012/05/02/os161-same_stack-check-fail-in-trap</id>
+    <content type="html"><![CDATA[<p>There are several <code>SAME_STACK</code> asserts in <code>$OS161_SRC/kern/arch/mips/locore/trap.c</code> to
+ensure that <strong>current thread did not run out of kernel stack</strong>.</p>
+
+<!-- more -->
+
+
+<p>A typical assert may looks like:</p>
+
+<p><code>c
+KASSERT(SAME_STACK(cpustacks[curcpu-&gt;c_number]-1, (vaddr_t)tf))
+</code></p>
+
+<p>During the lab, I sometimes fail this assert. At first, I thought I've run
+out of kernel stack so I enlarge the <code>STACK_SIZE</code> (<code>$OS161_SRC/kern/include/thread.h</code>)
+to 16 KB. But I still fail this assert after that. Then I take a look at the
+definition of the <code>SAME_STACK</code> macro:</p>
+
+<p>```c</p>
+
+<h1>define SAME_STACK(p1, p2) (((p1) &amp; STACK_MASK) == ((p2) &amp; STACK_MASK))</h1>
+
+<p>```</p>
+
+<p>I found this macro problematic. Suppose <code>STACK_SIZE = 0X00004000</code>, then
+<code>STACK_MASK = ~(STACK_SIZE-1) = 0XFFFFC000</code>. Assume <code>p1 (stack top) =
+0X80070FFF</code>, <code>p2 (stack pointer) = 0x8006FFFF</code>, then we've only used 0x00001000
+bytes stack but <code>SAME_STACK</code> macro will fail, since <code>p1 &amp; STACK_MASK =
+0X80070000, p2 &amp; STACK_MASK = 0X8006C000.</code></p>
+
+<p><strong>The point here is the stack top address may not be STACK_SIZE aligned. So we
+can not do the same stack check by simply checking their base addresss.</strong></p>
+
+<p>So we need to modify this part to get our kernel work. This is not your fault
+but probably a bug shipped with the kernel.</p>
+
+<p>You can use any tricky macros here but a simple pair of comparison will be
+suffice.</p>
+
+<p><code>c
+KASSERT(((vaddr_t)tf) &gt;= ((vaddr_t)curthread-&gt;t_stack));
+KASSERT(((vaddr_t)tf) &lt; ((vaddr_t)curthread-&gt;t_stack+STACK_SIZE));
+</code></p>
+]]></content>
+  </entry>
+  
+</feed>

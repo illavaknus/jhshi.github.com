@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:vm | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/vm/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Duplicated TLB entries]]></title>
+    <link href="http://jhshi.me/2012/05/02/os161-duplicated-tlb-entries/"/>
+    <updated>2012-05-02T13:18:47-04:00</updated>
+    <id>http://jhshi.me/2012/05/02/os161-duplicated-tlb-entries</id>
+    <content type="html"><![CDATA[<p>Sys161 will panic if you try to write a TLB entry with a <code>entryhi</code>, but
+there are already a TLB entry with the same <code>entryhi</code> but in a different TLB
+slot. This is because <strong>entryhi should be a UNIQUE key in the TLB bank.</strong></p>
+
+<!-- more -->
+
+
+<p>When you want to update a TLB entry (e.g., shoot down a TLB entry, or set the
+Dirty bit, etc.), you need to first use <code>tlb_probe</code> to query the TLB bank to get
+the TLB slot index and then use <code>tlb_read</code> to read the original value, and then
+use <code>tlb_write</code> to write the updated TLB entry value to this slot. <strong>But what
+if there is a interrupt after you <code>tlb_probe</code> but before <code>tlb_read</code>?</strong> Chance
+maybe that the TLB bank is totally refreshed so that you read a stale value
+and also write a stale value. Things get totally messed up and errors such as
+"Duplicated TLB entries" may occur.</p>
+
+<p>To resolve this, <strong>you need to protect your whole "<code>tlb_probe</code>-><code>tlb_read</code>->
+<code>tlb_write</code>" flow and make sure that this flow won't get interrupted.</strong> So you
+really want to disable interrupt (<code>int x = splhigh()</code>) before you do <code>tlb_probe</code>
+and re-enable it (<code>splx(x)</code>) after <code>tlb_write</code>. Alternatively, you can also use a
+spin lock to protect your access to TLB.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Swapping]]></title>
+    <link href="http://jhshi.me/2012/04/28/os161-swapping/"/>
+    <updated>2012-04-28T13:27:39-04:00</updated>
+    <id>http://jhshi.me/2012/04/28/os161-swapping</id>
+    <content type="html"><![CDATA[<p>Now that you can <a href="/2012/04/24/os161-physical-page-management">allocate/free physical pages</a>, and you have <a href="/2012/04/27/os161-tlb-miss-and-page-fault">demand paging
+through handling TLB miss</a>. Let's get the final part work: swapping.</p>
+
+<!-- more -->
+
+
+<h3>Three basic operations for a physical page</h3>
+
+<p>The first is called <strong>evict</strong>. In a nutshell, <code>evict</code> a physical page means we
+modify the page table entry so that this page is not Present (<code>PTE_P</code>), but
+Swapped (<code>PTE_S</code>). And we also need to shoot down the relative TLB entry. But in
+<code>evict</code>, we will not write the page's content to disk. Apparently, <strong>evict can
+only operate on clean pages</strong>.</p>
+
+<p>The second operation is <strong>swapout</strong>. We first write this page's content to
+disk, which makes the page from dirty to clean. And the we just evict it.
+<strong>swapout operation is for dirty pages</strong>.</p>
+
+<p>The last operations is <strong>swapin</strong>. Basically, it's for read some virtual page
+from swap file and place it in some physical page, and also need to modify
+the relevant page table entry, making this page Present (<code>PTE_P</code>) instead of
+Swapped(<code>PTE_S</code>).</p>
+
+<h3>How to store the swapped pages</h3>
+
+<p>We have two options here: store the pages in a <strong>disk</strong>, or in a <strong>file</strong>.</p>
+
+<p>By default, sys161 provide two disks through lamebus, i.e., <code>lhd0</code> and <code>lhd1</code>. If
+you want to store the pages in the raw disk, you should open the swap space like
+this:</p>
+
+<p>```c
+struct vnode* swapfile;
+int err = vfs_open("lhd0raw:", O_RDWR, 0, &amp;swapfile);
+if (err != 0) {</p>
+
+<pre><code>return err;
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Note that the file name must be <code>lhd0raw:</code> or <code>lhd1raw</code> and the open flag must
+be <code>O_RDWR</code>, since the disk is there, and needn't to be created or trunked.</p>
+
+<p>On the other hand, if you decided to just store the pages in a normal file, then
+you probably want to create the file like this:</p>
+
+<p>```c
+struct vnode* swapfile;
+int err = vfs_open("swapfile", O_RDWR|O_CREAT|O_TRUNC, 0, &amp;swapfile);
+if (err != 0) {</p>
+
+<pre><code>return err;
+</code></pre>
+
+<p>}
+```</p>
+
+<p>The file name is arbitrary, just choose one you like. And we provide the
+<code>O_TRUNC</code> flag so that we got a "clean" swap file that contains no contents.
+Then the file will be created under the root directory.</p>
+
+<p>From my experience, store pages in normal file could be two times faster in
+terms of read/write bandwidth.</p>
+
+<p>For the same reason why we can not open consoles in <code>thread_create</code>, you can not
+do this in <code>vm_bootstrap</code> since at that point, VFS system
+was not initialized yet (see <code>$OS161_SRC/kern/startup/main.c</code> for boot sequence,
+especially line 125~130). But it's OK, we can <strong>open the file until we really
+need to write pages</strong>, e.g., when we swap out the first page.</p>
+
+<p>We'll leverage the file operation to manipulate swapped pages. You may want to
+review the file operation system calls to get familiar with VFS operations. We
+use a lot <code>uio_kinit</code> and <code>VOP_READ</code>/<code>VOP_WRITE</code> here. But before all these, we need
+to first create a swap file.</p>
+
+<p>We also need some data structure to record each page's location in the swap
+file. This data structure should be something like a map. The key is (address
+space, va) pair, and the value is the location of the page. As usual, for
+simplicity, we can just use a statically allocated array. <strong>Each array element
+contains the (address space, va) pair, and this element's index is the page's
+location</strong>. Of course, we need to set up a limit of maximum swapped page number
+if we adopt this silly manner. When swap out a page, we first look up this
+array (by comparing <code>as</code> and <code>va</code>) and find out if the swap file has already
+contain a copy of this page, if yes then we directly overwrite that page and if
+no, we just find a available slot and write the page to that slot.</p>
+
+<p>A important note is that you want to <strong>create ONE swap file for all process</strong>,
+instead of one swap file for each process. Since by doing the later, you also
+have to allocate a mapping structure for each process and you'll run out of
+memory very quickly (kernel pages are fixed, right?). Now the swap file and the
+mapping data structure is a shared resource among all processes. So you need to
+protect them with a lock.</p>
+
+<h3>Two I/O operations on the swap file</h3>
+
+<p>These two operations is quite straightforward. The first is called <code>write_page</code>,
+which is responsible to <strong>write a page content to a specified location of the
+swap file</strong>. The second is <code>read_page</code>, which is to <strong>read a specified page in
+the swap file and copy the content to a physical page</strong>. We do not necessarily
+have to have these to util functions but it's always good to abstract low level
+operations and encapsulate to a convenient interface.</p>
+
+<h3>The Swapping Work flow</h3>
+
+<p>In your paging algorithm, you certainly will first look for free physical
+pages. But once you fail to find such a page, you have to swap some page out
+to get a free page. That's what the magic function <code>MAKE_PAGE_AVAIL</code> do in
+<a href="/2012/04/24/os161-physical-page-management">my previous post about physical page allocation</a>.</p>
+
+<p>Now let's take a look at the magic function. Denote the page that was to
+swapped out as victim. If it's state is <code>PAGE_STATE_CLEAN</code>, it means that this
+page already have a copy in disk and was not ever modified since swapped in. So
+we can safely discard it's content. We use the <code>evict</code> operation to deal with it.
+And after that, this page is available.</p>
+
+<p>If this page is dirty, which means either this page do not have a copy in swap
+file or this page was modified since it's swapped in, in both case, we need to
+write its content to swap file. We can use the <code>swapout</code> operation here.</p>
+
+<p>In <code>vm_fault</code> with fault type <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, when we find that
+this page is not Present (<code>PTE_P</code>), instead of allocate a new page for it, we
+need to further check if this page was swapped (<code>PTE_S</code>), if yes then we need to
+swap it in, if no then we can allocate a new physical page for it.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 TLB Miss and Page Fault]]></title>
+    <link href="http://jhshi.me/2012/04/27/os161-tlb-miss-and-page-fault/"/>
+    <updated>2012-04-27T19:27:26-04:00</updated>
+    <id>http://jhshi.me/2012/04/27/os161-tlb-miss-and-page-fault</id>
+    <content type="html"><![CDATA[<p>Now we've set up user address space, it's time to handle TLB/page faults. Note
+that there is a difference between TLB and page faults:</p>
+
+<ul>
+<li><p>TLB fault means the hardware don't know how to translate a virtual address
+since the translation didn't present in any TLB entry. So the hardware raise a
+TLB fault to let the kernel decide how to translate that address.</p></li>
+<li><p>Page fault means the user program tries to access a page that is not in
+memory, either not yet allocated or swapped out.</p></li>
+</ul>
+
+
+<!-- more -->
+
+
+<h3>TLB Entry Format</h3>
+
+<p>In sys161, which simulates MIPS R3000, there are totally 64 TLB entries. Each
+entry is a 64-bit value that has the following format:</p>
+
+<p><img class="center" src="/images/2012-04-27-mipsr3000-tlb.png"></p>
+
+<p>Section 18.6 of <a href="http://pages.cs.wisc.edu/~remzi/OSFEP/vm-tlbs.pdf">this document</a> contains a detailed description of the
+meaning of each bits. But briefly, VPN (abbr. for Virtual Page Frame Number)
+is the high 20 bits of a virtual address and PPN is the high 20 bits of a
+physical address space. <strong>When Dirty bit is 1, it means this page is writable,
+otherwise, it's read-only.</strong> When Valid bit is 1, it means this TLB entry
+contains a valid translation.</p>
+
+<p>In OS161, we can just ignore the ASID part and Global bit, unless you really
+want to do some tricks such as multiplex TLB among processes instead of just
+shoot down all TLB entries when context switch. Also, we can ignore the NoCache
+bit.</p>
+
+<h3>TLB Miss Type</h3>
+
+<p>When translation a virtual address, the hardware will issue a parallel search
+in all the TLB entries, using the VPN as a search key. If the hardware failed to
+find a entry or find a entry but with Valid bit is 0, a TLB Miss will be
+issued. The miss type could be <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, depending on
+whether it's a read or write operation. On the other hand, if it's a write
+operation and hardware find a valid TLB entry of VPN, but the Dirty bit is 0,
+then this is also a TLB miss with type <code>VM_FAULT_READONLY</code>.</p>
+
+<p>If none of above cases happen, then this is a TLB hit, everybody is happy :-)</p>
+
+<h3>TLB Manipulate Utils</h3>
+
+<p>Before we discuss how to handle a TLB fault. We first take a look at how
+to manipulate the TLB entries. The functions that access TLB can be found
+at <code>$OS161_SRC/kern/arch/mips/include/tlb.h</code>. Four routines are provided. And the
+comments there are quite clear. We use <code>tlb_probe</code> to query the TLB bank, and use
+<code>tlb_read</code>/<code>tlb_write</code> to read/write a specific TLB entry, and use <code>tlb_random</code> to
+let the hardware decide which entry to write to.</p>
+
+<h3>Finally, handle TLB Miss</h3>
+
+<p>On a TLB fault, the first thing to do is to check whether the faulting address
+is a valid user space address. Since it's possible that the fault is caused by
+<code>copyin</code>/<code>copyout</code>, which expect an TLB fault. So what's an "valid" user space
+address?</p>
+
+<ul>
+<li>User code or date segment</li>
+<li>User heap, between <code>heap_start</code> and <code>heap_end</code></li>
+<li>User stack</li>
+</ul>
+
+
+<p>If the address is invalid, then we directly return some non-zero error code, to
+let the <code>badfault_func</code> capture the fault.</p>
+
+<p>For <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, we just walk current address space's page
+table, and see if that page actually exists (by checking the <code>PTE_P</code> bit). If no then we just
+allocate a new page and modify the page table entry to insert the mapping
+(since we haven't turn on swap yet, so <strong>not exist means this is the first time
+we access this page</strong>). The permissions of the newly allocated page should be
+set according to the region information we stored in <code>struct addrspace</code>.
+Finally we just use <code>tlb_random</code> to insert this mapping to TLB. Of course,
+you can adopt some TLB algorithm here that choosing a specific TLB victim. But
+<strong>only do this when you have all your VM system working.</strong></p>
+
+<p>For <code>VM_FAULT_READONLY</code>, <strong>this page is already in memory and the mapping is
+already in TLB bank</strong>, just that the Dirty bit is 0 and user try to write
+this page. So <strong>we first check if user can really write this page</strong>, maybe
+by the access bits in the low 12 bits of page table entry. (Recall that in
+<code>as_define_region</code>, user passed in some attributes like readable, writable and
+executable. You should record them down there and use them to check here).</p>
+
+<p>If user want to write a page that he has no rights to write, then this is a
+access violation. You can just panic here or more gracefully, kill current
+process. But if user can actually write this page, then we first query TLB
+bank to get the index of the TLB entry, set the Dirty bit of <code>entrylo</code> and write
+it back use <code>tlb_write</code>. Don't forget to change the physical page's state to
+<code>PAGE_STATE_DIRTY</code> (It's useless now but will be useful in swapping)</p>
+
+<p>The above are pretty much what <code>vm_fault</code> does. Three extra tips:</p>
+
+<ul>
+<li><p>Since TLB is also a shared resource, so you'd better <strong>use a lock to
+protect the access to it</strong>. And it's better be a <code>spinlock</code> since sometimes we
+perform TLB operations in interrupt handler, where we don't want to sleep.</p></li>
+<li><p><strong>Do not print anything inside <code>vm_fault</code>.</strong> <code>kprintf</code> may touch some of the
+TLB entry so that the TLB has been changed between the miss and <code>vm_fault</code>, which
+can lead to some really weird bugs.</p></li>
+<li><p><strong>Assumption is the source of all evil. Use a lot KASSET to make your
+assumption explicit and check if they are right.</strong></p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 sbrk System Call]]></title>
+    <link href="http://jhshi.me/2012/04/27/os161-sbrk-system-call/"/>
+    <updated>2012-04-27T18:17:36-04:00</updated>
+    <id>http://jhshi.me/2012/04/27/os161-sbrk-system-call</id>
+    <content type="html"><![CDATA[<p>If you're not familiar with <code>sbrk</code> system call, here is <a href="http://en.wikipedia.org/wiki/Sbrk">it's wiki</a>,
+and its <a href="http://www.cs.utah.edu/flux/moss/node39.html">interface description</a>. In a nutshell,
+<code>malloc</code> will use <code>sbrk</code> to get heap space.</p>
+
+<!-- more -->
+
+
+<p>In <code>as_define_region</code>, we've find the highest address that user text and data
+segment occupy, and based on this, we've set the <code>heap_start</code> in <code>struct
+addrspace</code>. This makes the <code>sbrk</code> system call implementation quite easy: almost
+just parameter checking work. Several points:</p>
+
+<ul>
+<li><p><code>inc</code> could be negative, so make sure <code>heap_end+inc</code> >= <code>heap_start</code></p></li>
+<li><p>We need to set up a limit to user's heap size, e.g. 16MB or 32MB.
+Otherwise, some application such as the test program <code>malloctest</code> will try to
+malloc as much as memory as it can (~1GB), and your OS will suffer serving
+these kind of programs, especially when you have only 512KB physical memory. So
+we need to check <code>heap_end+inc-heap_start &lt; USER_HEAP_LIMIT</code></p></li>
+<li><p>Don't forget round up inc by 4. This is optional but can lower the chance
+of unaligned pointers</p></li>
+</ul>
+
+
+<p>After all these checking, just return <code>heap_end</code> as a <code>void*</code> pointer and increase
+<code>heap_end</code> by <code>inc</code>. Of course, like any other system calls, you need to add a
+case entry in the <code>syscall</code> function.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 User Address Space]]></title>
+    <link href="http://jhshi.me/2012/04/24/os161-user-address-space/"/>
+    <updated>2012-04-24T19:14:14-04:00</updated>
+    <id>http://jhshi.me/2012/04/24/os161-user-address-space</id>
+    <content type="html"><![CDATA[<p>Now we've set up our coremap and also have the routines to allocate and free
+physical pages. It's the time to set up user's virtual address space.</p>
+
+<p>Basically, we'll adopt <strong>two-level page table</strong>. If you're not
+already familiar with this, you can check out the <a href="http://en.wikipedia.org/wiki/Page_table">page table wiki</a>
+and <a href="http://pages.cs.wisc.edu/~remzi/OSFEP/vm-tlbs.pdf">this document talking about MIPS and X86 paging</a>.</p>
+
+<!-- more -->
+
+
+<p>The page table entry format will be much alike those in X86. For a page
+directory entry, the upper 20 bits indicates the base physical address of the
+page table, and <strong>we use one bit in the lower 12 bits to indicate whether this
+page table exist or not</strong>. For a page table entry, the upper 20 bits stores
+the base physical address of the actual page, while the lower 12 bits contain
+some attribute of this page, e.g., readable, writable, executable, etc. You are
+free to define all these (format of page directory and page table entry)
+though, since the addressing process are totally done by software in MIPS, but
+following the conventions is still better for compatibility as well as easy
+programming.</p>
+
+<h3>What to store in the <code>addrspace</code> structure?</h3>
+
+<p><strong>An address space is actually just a page directory</strong>: we can use this
+directory and page table to translate all the addresses inside the address
+space. And we also need to keep some other information like user heap start,
+user heap end, etc. But that's all, and no more.</p>
+
+<p>So in <code>as_create</code>, we just allocate a <code>addrspace</code> structure using <code>kmalloc</code>,
+and allocate a physical page (using <code>page_alloc</code>) as page directory and store
+it's address (either <code>KVADDR</code> or <code>PADDR</code> is OK, but you can just choose one).</p>
+
+<p>Besides, we need to record somewhere in the <code>addrspace</code> structure the valid
+regions user defined using <code>as_define_region</code>, since we're going to need that
+information during page fault handing to check whether the faulted address is
+valid or not.</p>
+
+<h3>Address Translating with <code>pgdir_walk</code></h3>
+
+<p><strong>This is another most important and core function in this lab.</strong> Basically,
+given an address space and virtual address, we want to find the corresponding
+physical address. This is what <code>pgdir_walk</code> does. We first extract the page
+directory index (top 10 bits) from the <code>va</code> and use it to index the page
+directory, thus we get the base physical address of the page table. Then we
+extract the page table index (middle 10 bits) from <code>va</code> and use it to index the
+page directory, thus we get the base physical address of the actual page.</p>
+
+<p>Several points to note:</p>
+
+<ul>
+<li><p>Instead of return the physical address, <strong>you may want to return the page
+table entry pointer</strong> instead. Since in most cases, we use <code>pgdir_walk</code> to get
+page table entries and modify it</p></li>
+<li><p>We'll also need to pass <code>pgdir_walk</code> a flag, indicating that whether we want
+to create a page table if non-exist (remember the <strong>present bit</strong> of page
+directory entry?). Since sometimes, we want to make sure that a <code>va</code> is mapped to
+a physical page when calling <code>pgdir_walk</code>. But most of the time, we just want to
+query if a <code>va</code> is mapped.</p></li>
+<li><p>Think clearly about which is physical address, and which is virtual
+address. Page directory entry and page table entry should store the physical
+address base. You'll need a lot <code>PADDR_TO_KVADDR</code> here.</p></li>
+</ul>
+
+
+<h3>Copy address space using <code>as_copy</code></h3>
+
+<p>This part is easy if you decide not support Copy-On-Write pages. Basically, you
+just <code>pgdir_walk</code> old address space's page table, and copy all the present pages.
+Only one point, don't forget to <strong>copy all the attribute bits (low 12 bits) of
+the old page table entry</strong>.</p>
+
+<p>You'll get some extra work when you enable swapping: you need to copy all the
+swapped pages beside present pages as well.</p>
+
+<h4>Destroy address space with <code>as_destroy</code></h4>
+
+<p>Same easy as <code>as_copy</code>, just <code>pgdir_walk</code> the page table and free all the present
+pages. Also same with <code>as_copy</code>, you need to free the swapped pages latter</p>
+
+<h3>Define regions using <code>as_define_region</code></h3>
+
+<p>Since we'll do <strong>on-demand paging</strong>, so we won't allocate any pages in
+<code>as_define_region</code> Instead, we just walk through the
+page table, and set the attribute bits accordingly. One point, remember the
+<code>heap_start</code> and <code>heap_end</code> field in <code>struct addrspace</code>? Question: <strong>where should
+user heap start? Immediately after user bss segment!</strong> And how would we know the
+end of user bss segment? In <code>as_define_region</code>! So each time in <code>as_define_region</code>,
+we just compare addrspace's current hew<code>and the region end, and set
+the</code>heap_start<code>right after (</code>vaddr+sz<code>). Don't forget to **proper align the
+</code>heap_start`(by page bound)**, of course.</p>
+
+<p>This should also be the place we record each region information (e.g., base,
+size, permission, etc) so that we can check them in <code>vm_fault</code>.</p>
+
+<p><img class="center" src="/images/2012-04-24-mips-as1.png"></p>
+
+<h3>Miscellaneous</h3>
+
+<p>In <code>as_activate</code>, if you don't use the ASID field of TLB entry, then you can just
+shoot down all the tlb entries. It's the easiest to way to go.</p>
+
+<p>In <code>as_prepare_load</code>, we need to change each regions' page table permision as read-write
+since we're going to load content (code, date) into them. And in
+<code>as_complete_load</code>, we need to change their page table permissions back to
+whatever the original value.</p>
+
+<p>In <code>as_define_stack</code>, we just return <code>USERSTACKTOP</code>.</p>
+]]></content>
+  </entry>
+  
+</feed>

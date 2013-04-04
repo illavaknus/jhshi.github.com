@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:scheduling | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/scheduling/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Process Scheduling]]></title>
+    <link href="http://jhshi.me/2012/03/18/os161-process-scheduling/"/>
+    <updated>2012-03-18T11:19:27-04:00</updated>
+    <id>http://jhshi.me/2012/03/18/os161-process-scheduling</id>
+    <content type="html"><![CDATA[<p>OS161 provides a simple round-robin scheduler by default. It works like this:</p>
+
+<ul>
+<li><p><code>hardclock</code> from <code>$OS161_SRC/kern/thread/clock.c</code> will be periodically called
+(from hardware clock interrupt handler)</p></li>
+<li><p>Two functions may be called there after:</p>
+
+<ul>
+<li><code>schedule</code> to change the order the threads in ready queue, which currently
+does nothing</li>
+<li><code>thread_consider_migraton</code> to enable thread migration among CPU cores</li>
+</ul>
+</li>
+<li><p>Then it will call <code>thread_yield</code> to cause the current thread yield to another
+thread</p></li>
+</ul>
+
+
+<p>We need to play with the <code>schedule</code> function to give interactive threads higher
+priority.</p>
+
+<!-- more -->
+
+
+<h3>Why give priority to interactive threads?</h3>
+
+<p>There are two reasons about this (at least the two in my mind) :</p>
+
+<ul>
+<li><p><strong>Your time is more valuable than computer's</strong>. So in general, we
+should first serve those threads that interact with you. For example, you don't
+want to wait the computer in a shell while it's busy doing backup, right?</p></li>
+<li><p>Interactive threads tend to be I/O bound, which means they often get stuck
+waiting for input or output. So they normally fail to consume their granted
+time slice. Thus we can switch to computation bound threads when they stuck and
+boost computer utilization.</p></li>
+</ul>
+
+
+<h3>How can we know whether a thread is interactive or not?</h3>
+
+<p>As said above, interactive threads are normally I/O bound. <strong>So they often need
+to sleep a lot.</strong></p>
+
+<p>In <code>$OS161_SRC/kern/thread/thread.c</code>, we can see that <code>thread_switch</code> is used to actually
+switch between threads. The first argument is <code>newstate</code>, which give some hints
+about the current thread.</p>
+
+<p>If <code>newstate</code> is <code>S_READY</code>, it means that <strong>current thread has consumed all
+its time slice and is forced to yield to another thread</strong> (by hardware clock).
+So we can guess that it's not interactive, or, it's computation intensive.
+However, if <code>newstate</code> is <code>S_SLEEP</code>, then it means <strong>current thread offers to
+yield to another thread</strong>, maybe waiting for I/O or a mutex. Thus we can guess
+that this thread is more interactive, or, it's I/O intensive.</p>
+
+<p>So by the <code>newstate</code>, we can make a good guess of current thread.</p>
+
+<h3>How to implement it?</h3>
+
+<p><a href="http://en.wikipedia.org/wiki/Multilevel_feedback_queue">Multi-Level Feedback Queue</a> seems to be a good enough algorithm in
+this case.</p>
+
+<p>We can add a priority field in <code>struct thread</code> and initiate it as medium
+priority in <code>thread_create</code>. Then in <code>thread_swith</code>, we can adjust current
+thread's priority by the <code>newstate</code>.</p>
+
+<ul>
+<li>If it's <code>S_SLEEP</code> then we increase current thread's priority.</li>
+<li>Otherwise, if it's <code>S_READY</code> then we decrease current thread's priority.</li>
+</ul>
+
+
+<p>Of course, we can only support a finite priority level here, <strong>so be careful
+with boundary case</strong>. For example, if current thread is
+already the highest priority and still request <code>S_SLEEP</code>, then we just leave it
+in that priority.</p>
+
+<p>Then in <code>schedule</code>, we need to <strong>find the thread with highest priority
+among all the threads in <code>curcpu-&gt;c_runqueue</code>, and bring it to head</strong>.</p>
+
+<p>Current CPU's run queue is organized as a double linked list with head
+element. <code>$OS161_SRC/kern/include/threadlist.h</code> provides several useful interface to
+let us manipulate the list. Find a maximum/minimum number among a list
+is so simple that I won't provide any details here. But note that <strong>the
+head element is just a place holder</strong>. So you may want to start from
+<code>curcpu-&gt;c_runqueue.tl_head.tln_Next</code> and stop when <code>elem-&gt;tln_next == NULL</code>.</p>
+
+<p>Once find the thread, we need to bring it to list head so we can
+leave <code>thread_switch</code> unchanged. A <code>threadlist_remove</code> followed by
+<code>threadlist_addhead</code> will be sufficient here.</p>
+
+<p><strong>One problem of MLFQ is starvation</strong>. So you may want to periodically reset all
+threads' priority to medium level for fairness.</p>
+
+<p>That's all. Here's just a work solution. Much work has be done if you want
+better scheduling for performance.</p>
+]]></content>
+  </entry>
+  
+</feed>

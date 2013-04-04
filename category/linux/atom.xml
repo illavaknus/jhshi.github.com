@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: linux | Pearls in Life]]></title>
+  <link href="http://jhshi.me/category/linux/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-04T14:03:31-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[LFS 5.5.1: Change GCC's Stack Protection Option]]></title>
+    <link href="http://jhshi.me/2012/09/08/change-gccs-stack-protection-option-in-lfs/"/>
+    <updated>2012-09-08T11:39:27-04:00</updated>
+    <id>http://jhshi.me/2012/09/08/change-gccs-stack-protection-option-in-lfs</id>
+    <content type="html"><![CDATA[<p>In <a href="http://www.linuxfromscratch.org/lfs/view/stable/chapter05/gcc-pass1.html">Chapter 5.5</a>, there is one step that fixes the GCC's stack protection
+detection problem. The command is:</p>
+
+<p><code>bash
+sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
+</code></p>
+
+<!-- more -->
+
+
+<p>This command seems weird to me at first glance. After digging a little more
+about <code>sed</code> command, it's intention is much clear.</p>
+
+<ul>
+<li><p><strong>-i</strong> means change the file (i.e., <code>gcc/configure</code>) in place</p></li>
+<li><p><strong>/k prot/</strong> is the pattern. If you look at <code>gcc/configure</code>, you'll find a
+line (around 26695) of comment that says:</p></li>
+</ul>
+
+
+<p>```bash</p>
+
+<h1>Test for stack protector support in target C library</h1>
+
+<p>```</p>
+
+<p>And you'll see that this is the only occurrence of "stack protector" (as well
+as <code>k prot</code>. I think we'd better use <code>/stack protector/</code> as the pattern for
+easy understanding.</p>
+
+<ul>
+<li><p><strong>a</strong> means append a line after the line that contains the pattern. (<a href="http://www.grymoire.com/Unix/Sed.html#uh-40">sed document</a>)</p></li>
+<li><p><strong>gcc_cv_libc_provides_ssp=yes</strong> is the actual line being appended.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Use rsync and cron to do regular backup (Part II)]]></title>
+    <link href="http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-ii/"/>
+    <updated>2012-07-11T12:53:52-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-ii</id>
+    <content type="html"><![CDATA[<p>Now that we can <a href="/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-i">take advantage of rsync to minimize the data to transfer when
+backup</a>. But it's still a little uncomfortable if we need to do this manually
+everyday, right? Well, cron is here to solve the pain.</p>
+
+<!-- more -->
+
+
+<p><a href="http://en.wikipedia.org/wiki/Cron">Cron</a> is kind of a system service that
+automatically do some job as you specified. Backup, for example, is a perfect
+kind of job that we can count on cron.</p>
+
+<p>First, we need to specify a job that we want cron to do. In my case, I want
+cron to automatically sync my source tree folder on remote data center and my
+local backup folder. A simple rsync command seems meet my need. But actually,
+there are more to consider:</p>
+
+<ul>
+<li><p>I don't want to copy the obj files, since they are normally large in size
+and change frequently, but can be easily re-generated. But I also don't want to
+skip the entire build folder when do rsync since there are some configure files
+in there.</p></li>
+<li><p>The backup process should be totally automated. More specifically, no
+password is needed when do rysnc.</p></li>
+</ul>
+
+
+<p>Towards the first need, I can use ssh to send remote command to
+do necessary clean up work before rysnc. And the second need can
+be meted according to my previous post about <a href="/2012/04/27/sshscp-without-password">ssh/scp without password</a>.</p>
+
+<p>So my final backup script looks like this:</p>
+
+<p>```bash</p>
+
+<h1>!/bin/sh</h1>
+
+<h1>~/backup.sh</h1>
+
+<p>LOG_FILE=~/backup.log
+SOURCE_DIR=b@B:~/src/
+TARGET_DIR=~/src_backup</p>
+
+<p>date >> $LOG_FILE
+echo "Synchronization start..." >> $LOG_FILE
+ssh b@B 'cd ~/src/build; make clean; rm -rf obj/" >> $LOG_FILE
+rsync -avz --exclude "tags" $SOURCE_DIR $TARGET_DIR >> $LOG_FILE
+echo "Synchronization done" >> $LOG_FILE
+```</p>
+
+<p>Once we figure out what to do, we need to tell cron about our job. The
+configure file of cron is <code>/etc/crontab</code>. A job description is like follows:</p>
+
+<p>```</p>
+
+<h1>Example of job definition:</h1>
+
+<h1>.----------------minute (0 - 59)</h1>
+
+<h1>| .------------- hour (0 - 23)</h1>
+
+<h1>| | .---------- day of month (1 - 31)</h1>
+
+<h1>| | | .------- month (1 - 12) OR jan,feb,mar,apr ...</h1>
+
+<h1>| | | | .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat</h1>
+
+<h1>| | | | |</h1>
+
+<h1>* * * * * user-name command to be executed 0 0 * * * jack ~/backup.sh</h1>
+
+<p>```</p>
+
+<p>I want to do backup every day on midnight so I set the minute and hour both to
+0. The asterisk (<code>*</code>) symbol in day/month means any valid values.</p>
+
+<p>Now we are done. The back up process is completely automated and scheduled.</p>
+
+<p><strong>Reference</strong>:</p>
+
+<p><a href="http://myhowtosandprojects.blogspot.hk/2008/07/sincronize-folders-with-rsync-using-ssh.html">http://myhowtosandprojects.blogspot.hk/2008/07/sincronize-folders-with-rsync-using-ssh.html</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Use rsync and cron to do regular backup (Part I)]]></title>
+    <link href="http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-i/"/>
+    <updated>2012-07-11T12:23:45-04:00</updated>
+    <id>http://jhshi.me/2012/07/11/use-rsync-and-cron-to-do-regular-backup-part-i</id>
+    <content type="html"><![CDATA[<p>Recently I do most of my work on a remote data center through a slow network
+connection (&lt;100KB/sec). I usually backup my project source tree as follows.
+I first do make clean and also delete any unnecessary obj files to shrink the
+total file size, then I compress the whole source tree as a tar ball and then I
+use <code>scp</code> locally to fetch the backup tar ball to my local machine. The procedure
+is quite boring since I need to do this every day before I go home, otherwise
+the whole bandwidth will be occupied for near an hour during which I can almost
+do nothing.</p>
+
+<p>Situation gets better when I find <code>rsync</code> and <code>cron</code>. Here is how I do automatic
+regular (daily) backup with them.</p>
+
+<!-- more -->
+
+
+<p><a href="http://en.wikipedia.org/wiki/Rsync">Rsync</a> is a file synchronization tool
+that aims to minimize the data transfer during copy files. This is done via
+only send the diffs to destination. It is perfect when you need to do regular
+copy between two fixed locations. Rsync has many options (well, as most of
+other GNU tools), here is two of them that are used more frequently:</p>
+
+<p>```bash</p>
+
+<h1>ensure that symbolic links, devices, attributes, permissions,</h1>
+
+<h1>ownerships, etc are preserved in the transfer</h1>
+
+<p>-a, --archive</p>
+
+<h1>compress data during transfer, especially useful when the bandwidth is limited</h1>
+
+<p>-z, --compress</p>
+
+<h1>exclude the directories or files that you don't want to sync, such as obj</h1>
+
+<h1>files, tag files, etc</h1>
+
+<p>--exclude
+<code>``
+Suppose that you have a source tree on host B:</code>~/src<code>, and you want to sync this
+source tree with a local folder named:</code>~/src_backup`, then the follow command
+will suffice:</p>
+
+<p><code>bash
+$ rsync -avz --exclude "obj/" --exclude "tags" --exclude "build" b@B:~/src/ ~/src_backup
+</code></p>
+
+<p>The two exclude option will tell rsync to skip the obj subdirectory as well
+as the tags file. The trailing slash in the source (<code>b@B:~/src/</code>) will tell
+rsync not to create an additional directory level at the destination. Without
+this slash, rsync will create a <code>src</code> directory under <code>~/src_backup</code>, which is not
+desirable.</p>
+
+<p>Now that after the first time rsync, the following rsync commands will only
+transfer the file changes to local, which is a great save of the bandwidth.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Use trap to Do Cleanup Work When Script Terminates]]></title>
+    <link href="http://jhshi.me/2012/05/07/use-trap-to-do-cleanup-work-when-script-terninates/"/>
+    <updated>2012-05-07T15:08:56-04:00</updated>
+    <id>http://jhshi.me/2012/05/07/use-trap-to-do-cleanup-work-when-script-terninates</id>
+    <content type="html"><![CDATA[<p>Now I have the script that monitoring the output of several UART devices:</p>
+
+<!-- more -->
+
+
+<p>```bash</p>
+
+<h1>!/bin/bash</h1>
+
+<p>for i in <code>seq 0 7</code>; do</p>
+
+<h1>use grep here to enforce line-buffered output, so concurrent</h1>
+
+<h1>input from UART isn't messed up</h1>
+
+<pre><code>cat /dev/crbif0rb0c${i}ttyS0 | grep ^ --line-buffered &amp;
+</code></pre>
+
+<p>done</p>
+
+<p>wait
+```</p>
+
+<p>But there is one problem, when you terminate the script (<code>ctrl+c</code>), these cat
+processes won't be killed, so that the next time you run this script, you'll not
+be able to access these UART device since they are busy.</p>
+
+<p>To solve this problem, we need to do some cleanup work when the script
+terminates. In this case, we need to kill these <code>cat</code> processes. We can use the
+<code>trap</code> command to do this. Basically, <strong>trap enables you to register a kind of
+handler for different kind of signals</strong>.</p>
+
+<p>In this case, we can add a line into the script:</p>
+
+<p>```bash
+trap "pkill -P $$" SIGINT</p>
+
+<p>for i in <code>seq 0 7</code>; do</p>
+
+<h1>use grep here to enforce line-buffered output, so concurrent</h1>
+
+<h1>input from UART isn't messed up</h1>
+
+<pre><code>cat /dev/crbif0rb0c${i}ttyS0 | grep ^ --line-buffered &amp;
+</code></pre>
+
+<p>done</p>
+
+<p>wait
+```</p>
+
+<p><code>$$</code> is the process id of the script. <code>pkill -P $$</code> will kill all the child
+processes of <code>$$</code>. So that when the script terminates (<code>SIGINT</code> signal from
+<code>ctrl+c</code>), this <code>pkill</code> command will be executed and all the cat processes will
+be killed.</p>
+
+<p>Thanks to these post.</p>
+
+<ul>
+<li><a href="http://steve-parker.org/sh/trap.shtml">http://steve-parker.org/sh/trap.shtml</a></li>
+<li><a href="http://www.davidpashley.com/articles/writing-robust-shell-scripts.html#id2564782">http://www.davidpashley.com/articles/writing-robust-shell-scripts.html#id2564782</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Line Buffered Cat]]></title>
+    <link href="http://jhshi.me/2012/05/04/line-buffered-cat/"/>
+    <updated>2012-05-04T10:44:15-04:00</updated>
+    <id>http://jhshi.me/2012/05/04/line-buffered-cat</id>
+    <content type="html"><![CDATA[<p>I'd like to watch the output of a UART device in Linux, and I only want to see
+the content when there are a whole line. So I prefer some kind of line-buffered
+cat such as:</p>
+
+<!-- more -->
+
+
+<p><code>bash
+$ cat --line-buffered /dev/crbif0rb0c0ttyS0
+</code></p>
+
+<p>But unfortunately, <code>cat</code> doesn't have a line-buffered option. And fortunately,
+GNU <code>grep</code> has such an option. So we can do</p>
+
+<p><code>
+$ cat /dev/crbif0rb0c0ttyS0 | grep ^ --line-buffered
+</code></p>
+
+<p>Since every line has a ^ (line start), so each line matches the <code>grep</code>. Note
+that I ever tried</p>
+
+<p><code>
+$ cat /dev/crbif0rb0c0ttyS0 | grep . --line-buffered
+</code></p>
+
+<p>But this does not work. Only empty lines are printed, and I don't know why...</p>
+]]></content>
+  </entry>
+  
+</feed>
