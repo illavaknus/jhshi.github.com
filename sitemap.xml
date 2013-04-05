@@ -185,15 +185,27 @@
         <lastmod>2013-04-04T15:24:45-04:00</lastmod>
     </url>
     <url>
+        <loc>http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock/</loc>
+        <lastmod>2013-04-05T12:42:15-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2013/04/05/os161-synchronization-primitives-cv/</loc>
+        <lastmod>2013-04-05T13:29:20-04:00</lastmod>
+    </url>
+    <url>
+        <loc>http://jhshi.me/2013/04/05/os161-synchronization-primitives-rwlock/</loc>
+        <lastmod>2013-04-05T14:10:21-04:00</lastmod>
+    </url>
+    <url>
         <loc>http://jhshi.me/robots.txt</loc>
         <lastmod>2013-04-02T11:41:27-04:00</lastmod>
     </url>
     <url>
         <loc>http://jhshi.me/blog/archives/</loc>
-        <lastmod>2013-04-04T15:24:45-04:00</lastmod>
+        <lastmod>2013-04-05T14:10:21-04:00</lastmod>
     </url>
     <url>
         <loc>http://jhshi.me/</loc>
-        <lastmod>2013-04-04T15:24:45-04:00</lastmod>
+        <lastmod>2013-04-05T14:10:21-04:00</lastmod>
     </url>
 </urlset>
