@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:lock | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/lock/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-05T14:19:28-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: Lock]]></title>
+    <link href="http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock/"/>
+    <updated>2013-04-04T15:23:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock</id>
+    <content type="html"><![CDATA[<p>Lock is basically just a semaphore whose initial counter is 1. <code>lock_acquire</code> is
+like <code>P</code>, while <code>lock_release</code> is like <code>V</code>. You probably want to go over
+<a href="/2013/04/04/os161-synchronization-primitives-semaphore">my previous post about semaphore</a></p>
+
+<!-- more -->
+
+
+<h3>Lock's holder</h3>
+
+<p>However, since only one can hold the lock at any given time, that guy is
+considered to be the <strong>holder</strong> of this lock. While in semaphore, we don't have
+such a holder concept since multiple thread can "hold" the semaphore at the same
+time.</p>
+
+<p>Thus we need to store the holder information in our lock structure, along with the
+conventional spin lock and wait channel. Intuitively, you may tempted to use the
+thread name (<code>curthread-&gt;t_name</code>) as the thread's identifier. Nevertheless, same
+with the case in real world, the thread's name isn't necessarily unique. The
+OS161 doesn't forbidden us to create a bunch of threads with the same name.</p>
+
+<p>There is a global variable defined in <code>$OS161_SRC/kern/include/current.h</code> named
+<code>curthread</code>, which is a pointer to the kernel data structure of current thread.
+Two different threads definitely have different thread structures, which makes
+it a good enough thread identifier.</p>
+
+<h3>Reentrant Lock</h3>
+
+<p>Another trick thing is to decide whether we support <a href="http://en.wikipedia.org/wiki/Reentrant_mutex">reentrant lock</a> or not.
+Basically, a process can acquire a reentrant lock multiple times without
+blocking itself.</p>
+
+<p>At first glance, you may wonder what kind of dumb thread would acquire a lock
+multiple times anyway? Well, that kind of thread does exist, and they may not be
+dumb at all. Reentrant lock is useful when it's difficult for a thread to track
+whether it has grabbed the lock. Suppose we have multiple threads that traverse
+a graph simultaneously, and each thread need to first grab the lock of a node
+before it can visit that node. If the graph has a circle or there are multiple
+paths leads to the same node, then it's possible that a thread visit the same
+node twice. Although there is a function named <code>lock_do_i_hold</code> that can tell
+whether a thread holds a lock or not, unfortunately it's not a public interface of lock.</p>
+
+<p>In OS161, it's OK that you choose to not support reentrant lock, so when you
+detect a thread try to acquire a lock while it's the lock's holder, just panic.
+But if you want to support reentrant lock, <strong>you need to make sure a thread won't
+accidentally loose a lock.</strong> For example,</p>
+
+<p>```c
+void A(void) {</p>
+
+<pre><code>lock_acquire(lock1);
+
+B();
+
+lock_release(lock1);
+</code></pre>
+
+<p>}</p>
+
+<p>void B(void) {</p>
+
+<pre><code>lock_acquire(lock1);
+
+printf("Hello world!");
+
+lock_release(lock1);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>In this case, the thread is supposed to still hold the lock <strong>after</strong> B
+returns.</p>
+
+<p>The simplest way would be, keep a counter (initial value 0) for each lock. When
+a thread acquires a lock, increase that counter. When it release the lock, decrease
+the counter, only actually release a lock when the counter reaches 0.</p>
+]]></content>
+  </entry>
+  
+</feed>

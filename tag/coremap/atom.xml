@@ -4,7 +4,7 @@
   <title><![CDATA[Tag:coremap | Pearls in Life]]></title>
   <link href="http://jhshi.me/tag/coremap/atom.xml" rel="self"/>
   <link href="http://jhshi.me/"/>
-  <updated>2013-04-04T18:36:39-04:00</updated>
+  <updated>2013-04-05T14:19:28-04:00</updated>
   <id>http://jhshi.me/</id>
   <author>
     <name><![CDATA[Jinghao Shi]]></name>
@@ -121,7 +121,7 @@ uint64_t timestamp;
 
 <p>A page can have for different states, as shown below.</p>
 
-<p><img class="center" src="/images/2012-04-24-page-state.png"></p>
+<p>{% img center /images/2012-04-24-page-state.png %}</p>
 
 <p>This diagram is quite clear. Several points though:</p>
 

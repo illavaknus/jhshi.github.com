@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag:cv | Pearls in Life]]></title>
+  <link href="http://jhshi.me/tag/cv/atom.xml" rel="self"/>
+  <link href="http://jhshi.me/"/>
+  <updated>2013-04-05T14:19:28-04:00</updated>
+  <id>http://jhshi.me/</id>
+  <author>
+    <name><![CDATA[Jinghao Shi]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: CV]]></title>
+    <link href="http://jhshi.me/2013/04/05/os161-synchronization-primitives-cv/"/>
+    <updated>2013-04-05T12:37:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/05/os161-synchronization-primitives-cv</id>
+    <content type="html"><![CDATA[<p><a href="http://en.wikipedia.org/wiki/Monitor_(synchronization)">Condition variable</a> is used for a thread to wait for some condition to be
+true before continuing. The implementation is quite simple compared to
+<a href="/2013/04/04/os161-synchronization-primitives-lock">lock</a>, yet the difficult part is to understand how a CV is supposed to
+used.</p>
+
+<!-- more -->
+
+
+<h3>CV Interface</h3>
+
+<p>Condition variable has two interfaces: <code>cv_wait</code> and <code>cv_signal</code>. <code>cv_wait</code> is
+used to wait for a condition to be true, and <code>cv_signal</code> is used to notify other
+threads that a certain condition is true.</p>
+
+<p>So what?</p>
+
+<p>Let's consider a producer-consumer case, where a bunch of threads share a
+resource pool, some of them (producer) is responsible to put stuff to the pool
+and others (consumer) are responsible to take stuff from the pool. Obviously, we
+have two rules.</p>
+
+<ol>
+<li>If the pool is full, then producers can not put to the pool</li>
+<li>If the pool is empty, then consumers can not take stuff from the pool</li>
+</ol>
+
+
+<p>And we use two condition variables for each of these rules: <code>pool_full</code> and
+<code>pool_empty</code>. Here is the pseudo code for producer and consumer:</p>
+
+<p>```c
+void producer(void) {</p>
+
+<pre><code>lock_acquire(pool_lock);
+while (pool_is_full) {
+    cv_wait(pool_full, pool_lock);
+}
+produce();
+/* notify that the pool now is not empty, so if any one is waiting
+ * on the pool_empty cv, wake them up 
+ */
+cv_signal(pool_empty, pool_lock);
+lock_release(pool_lock);
+</code></pre>
+
+<p>}</p>
+
+<p>void consumer(void) {</p>
+
+<pre><code>lock_acquire(pool_lock);
+while (pool_is_empty) {
+    cv_wait(pool_empty, pool_lock);
+}
+consume();
+/* notify that the pool now is not full, so if any one is waiting
+ * on the pool_full cv, wake them up 
+ */
+
+cv_signal(pool_full, pool_lock);
+lock_release(pool_lock);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Here we also use a lock to protect access to the pool. We can see from this
+example:</p>
+
+<ol>
+<li>Condition variable is virtually a wait channel</li>
+<li>Condition variable is normally used together with lock, but <strong>condition
+variable itself doesn't contain a lock</strong></li>
+</ol>
+
+
+<h3>What's in <code>cv</code> structure?</h3>
+
+<p>Obviously, we need a wait channel. And that's it (probably plus a <code>cv_name</code>).</p>
+
+<h3><code>cv_wait</code> and <code>cv_signal</code></h3>
+
+<p>Now let's get to business. The comment in <code>$OS161_SRC/kern/inlucde/synch.h</code>
+basically told you everything you need to do.</p>
+
+<p>In <code>cv_wait</code>, we need to:</p>
+
+<ol>
+<li>Lock the wait channel</li>
+<li>Release the lock passed in</li>
+<li>Sleep on the wait channel</li>
+<li>When waked up, re-acquire the lock.</li>
+</ol>
+
+
+<p>So before <code>cv_wait</code>, we should already hold the lock (so that we can release
+it). And after <code>cv_wait</code>, we still hold the lock.</p>
+
+<p>In <code>cv_signal</code>, we just wake up somebody in the wait channel using
+<code>wchan_wakeone</code>.</p>
+]]></content>
+  </entry>
+  
+</feed>

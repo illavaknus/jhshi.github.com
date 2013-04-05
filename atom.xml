@@ -4,7 +4,7 @@
   <title><![CDATA[Pearls in Life]]></title>
   <link href="http://jhshi.me/atom.xml" rel="self"/>
   <link href="http://jhshi.me/"/>
-  <updated>2013-04-04T18:36:39-04:00</updated>
+  <updated>2013-04-05T14:10:35-04:00</updated>
   <id>http://jhshi.me/</id>
   <author>
     <name><![CDATA[Jinghao Shi]]></name>
@@ -12,6 +12,318 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: RWLock]]></title>
+    <link href="http://jhshi.me/2013/04/05/os161-synchronization-primitives-rwlock/"/>
+    <updated>2013-04-05T13:30:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/05/os161-synchronization-primitives-rwlock</id>
+    <content type="html"><![CDATA[<p>The idea of <a href="http://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock">Reader-Writer Lock</a> is quite simple. In normal <a href="http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock">lock</a>,
+we don&#8217;t differentiate the threads. That said, each thread who wants to enter the
+critical section must first acquire the lock. But on a second thought, you may
+find that threads actually have different behavior inside the critical section:
+some threads just want to see the values of shared variable, while others really
+want to update those variables.</p>
+
+<!-- more -->
+
+
+<h3>An Example</h3>
+
+<p>Suppose we have a book database in a library, each reader who wants to query the
+database must first acquire the lock before he can actually do the query. The
+library manager, who wants to update some book info also need to acquire the
+lock before he can do the actual update. In this case, we can see that the
+queries of multiple readers in fact have no conflict. So ideally they should be
+allowed to be in the critical section at the same time. On the other hand, the
+library manager must have exclusive access to the database while he&#8217;s updating.
+No readers, no other managers can enter the critical section until the first
+manager leaves.</p>
+
+<p>So, two rules for rwlock:</p>
+
+<ol>
+<li>Multiple readers can in the critical section at the same time</li>
+<li>One and only one writers can in the critical section at any time</li>
+</ol>
+
+
+<h3>Starvation</h3>
+
+<p>Suppose the coming sequence of threads are &#8220;RWRRRRR&#8230;&#8221;, in which R denotes reader
+and W denotes writer. The first reader arrives, and found no one in the critical
+section, and he happily comes in. Before he leaves, the writer arrives, but
+found there is a reader inside the critical section, so the writer wait. While
+the write is waiting, the second reader comes and find there is one reader
+inside the critical section, literally, it&#8217;s OK for him to come in according to
+the rules, right? The same case applies to the third, forth,&#8230;, readers.</p>
+
+<p>So without special attention, we see readers come and go, while the poor writer
+keeps waiting, for virtually a &#8220;unbounded&#8221; time. In this case, the writer is
+starved.</p>
+
+<p>The thing is, the second, third, forth&#8230;, readers shouldn&#8217;t enter critical section
+since there is a write waiting before them!</p>
+
+<h3>Implementation</h3>
+
+<p>There are many ways to implement rwlock. You can use any of the semaphore, cv or
+lock. Here I introduce one using semaphore and lock. It&#8217;s very simple, yet has
+the limitation that only support support at most a  certain number of readers in
+the critical section.</p>
+
+<p>Let&#8217;s imagine the critical section as a set of resources. The initial capacity
+is <code>MAX_READERS</code>. The idea is each reader needs one of these resources to enter
+the critical section, while each writer needs all of these resources (to prevent other
+readers or writers) to enter.</p>
+
+<p>To let the readers be aware of the waiting writers, each thread should first
+acquire a lock before he can acquire the resource.</p>
+
+<p>So for <code>rwlock_acquire_read</code>:</p>
+
+<ol>
+<li>Acquire the lock</li>
+<li>Acquire a resource using <code>P</code></li>
+<li>Release the lock</li>
+</ol>
+
+
+<p>For <code>rwlock_release_read</code>, just release the resource using <code>V</code>.</p>
+
+<p>In <code>rwlock_acquire_write</code>:</p>
+
+<ol>
+<li>Acquire the lock, so that no other readers/writer would be able to acquire
+the rwlock</li>
+<li>Acquire <strong>ALL</strong> the resources by doing <code>P</code> <code>MAX_READERS</code> times</li>
+<li>Release the lock. It&#8217;s safe now since we got all the resources.</li>
+</ol>
+
+
+<p>For <code>rwlock_release_write</code>, just release all the resources.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: CV]]></title>
+    <link href="http://jhshi.me/2013/04/05/os161-synchronization-primitives-cv/"/>
+    <updated>2013-04-05T12:37:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/05/os161-synchronization-primitives-cv</id>
+    <content type="html"><![CDATA[<p><a href="http://en.wikipedia.org/wiki/Monitor_(synchronization)">Condition variable</a> is used for a thread to wait for some condition to be
+true before continuing. The implementation is quite simple compared to
+<a href="http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock">lock</a>, yet the difficult part is to understand how a CV is supposed to
+used.</p>
+
+<!-- more -->
+
+
+<h3>CV Interface</h3>
+
+<p>Condition variable has two interfaces: <code>cv_wait</code> and <code>cv_signal</code>. <code>cv_wait</code> is
+used to wait for a condition to be true, and <code>cv_signal</code> is used to notify other
+threads that a certain condition is true.</p>
+
+<p>So what?</p>
+
+<p>Let&#8217;s consider a producer-consumer case, where a bunch of threads share a
+resource pool, some of them (producer) is responsible to put stuff to the pool
+and others (consumer) are responsible to take stuff from the pool. Obviously, we
+have two rules.</p>
+
+<ol>
+<li>If the pool is full, then producers can not put to the pool</li>
+<li>If the pool is empty, then consumers can not take stuff from the pool</li>
+</ol>
+
+
+<p>And we use two condition variables for each of these rules: <code>pool_full</code> and
+<code>pool_empty</code>. Here is the pseudo code for producer and consumer:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="nf">producer</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">lock_acquire</span><span class="p">(</span><span class="n">pool_lock</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">while</span> <span class="p">(</span><span class="n">pool_is_full</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">cv_wait</span><span class="p">(</span><span class="n">pool_full</span><span class="p">,</span> <span class="n">pool_lock</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">produce</span><span class="p">();</span>
+</span><span class='line'>    <span class="cm">/* notify that the pool now is not empty, so if any one is waiting</span>
+</span><span class='line'><span class="cm">     * on the pool_empty cv, wake them up </span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="n">cv_signal</span><span class="p">(</span><span class="n">pool_empty</span><span class="p">,</span> <span class="n">pool_lock</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">lock_release</span><span class="p">(</span><span class="n">pool_lock</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span> <span class="nf">consumer</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">lock_acquire</span><span class="p">(</span><span class="n">pool_lock</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">while</span> <span class="p">(</span><span class="n">pool_is_empty</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>        <span class="n">cv_wait</span><span class="p">(</span><span class="n">pool_empty</span><span class="p">,</span> <span class="n">pool_lock</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="n">consume</span><span class="p">();</span>
+</span><span class='line'>    <span class="cm">/* notify that the pool now is not full, so if any one is waiting</span>
+</span><span class='line'><span class="cm">     * on the pool_full cv, wake them up </span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">cv_signal</span><span class="p">(</span><span class="n">pool_full</span><span class="p">,</span> <span class="n">pool_lock</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">lock_release</span><span class="p">(</span><span class="n">pool_lock</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here we also use a lock to protect access to the pool. We can see from this
+example:</p>
+
+<ol>
+<li>Condition variable is virtually a wait channel</li>
+<li>Condition variable is normally used together with lock, but <strong>condition
+variable itself doesn&#8217;t contain a lock</strong></li>
+</ol>
+
+
+<h3>What&#8217;s in <code>cv</code> structure?</h3>
+
+<p>Obviously, we need a wait channel. And that&#8217;s it (probably plus a <code>cv_name</code>).</p>
+
+<h3><code>cv_wait</code> and <code>cv_signal</code></h3>
+
+<p>Now let&#8217;s get to business. The comment in <code>$OS161_SRC/kern/inlucde/synch.h</code>
+basically told you everything you need to do.</p>
+
+<p>In <code>cv_wait</code>, we need to:</p>
+
+<ol>
+<li>Lock the wait channel</li>
+<li>Release the lock passed in</li>
+<li>Sleep on the wait channel</li>
+<li>When waked up, re-acquire the lock.</li>
+</ol>
+
+
+<p>So before <code>cv_wait</code>, we should already hold the lock (so that we can release
+it). And after <code>cv_wait</code>, we still hold the lock.</p>
+
+<p>In <code>cv_signal</code>, we just wake up somebody in the wait channel using
+<code>wchan_wakeone</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: Lock]]></title>
+    <link href="http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock/"/>
+    <updated>2013-04-04T15:23:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock</id>
+    <content type="html"><![CDATA[<p>Lock is basically just a semaphore whose initial counter is 1. <code>lock_acquire</code> is
+like <code>P</code>, while <code>lock_release</code> is like <code>V</code>. You probably want to go over
+<a href="http://jhshi.me/2013/04/04/os161-synchronization-primitives-semaphore">my previous post about semaphore</a></p>
+
+<!-- more -->
+
+
+<h3>Lock&#8217;s holder</h3>
+
+<p>However, since only one can hold the lock at any given time, that guy is
+considered to be the <strong>holder</strong> of this lock. While in semaphore, we don&#8217;t have
+such a holder concept since multiple thread can &#8220;hold&#8221; the semaphore at the same
+time.</p>
+
+<p>Thus we need to store the holder information in our lock structure, along with the
+conventional spin lock and wait channel. Intuitively, you may tempted to use the
+thread name (<code>curthread-&gt;t_name</code>) as the thread&#8217;s identifier. Nevertheless, same
+with the case in real world, the thread&#8217;s name isn&#8217;t necessarily unique. The
+OS161 doesn&#8217;t forbidden us to create a bunch of threads with the same name.</p>
+
+<p>There is a global variable defined in <code>$OS161_SRC/kern/include/current.h</code> named
+<code>curthread</code>, which is a pointer to the kernel data structure of current thread.
+Two different threads definitely have different thread structures, which makes
+it a good enough thread identifier.</p>
+
+<h3>Reentrant Lock</h3>
+
+<p>Another trick thing is to decide whether we support <a href="http://en.wikipedia.org/wiki/Reentrant_mutex">reentrant lock</a> or not.
+Basically, a process can acquire a reentrant lock multiple times without
+blocking itself.</p>
+
+<p>At first glance, you may wonder what kind of dumb thread would acquire a lock
+multiple times anyway? Well, that kind of thread does exist, and they may not be
+dumb at all. Reentrant lock is useful when it&#8217;s difficult for a thread to track
+whether it has grabbed the lock. Suppose we have multiple threads that traverse
+a graph simultaneously, and each thread need to first grab the lock of a node
+before it can visit that node. If the graph has a circle or there are multiple
+paths leads to the same node, then it&#8217;s possible that a thread visit the same
+node twice. Although there is a function named <code>lock_do_i_hold</code> that can tell
+whether a thread holds a lock or not, unfortunately it&#8217;s not a public interface of lock.</p>
+
+<p>In OS161, it&#8217;s OK that you choose to not support reentrant lock, so when you
+detect a thread try to acquire a lock while it&#8217;s the lock&#8217;s holder, just panic.
+But if you want to support reentrant lock, <strong>you need to make sure a thread won&#8217;t
+accidentally loose a lock.</strong> For example,</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="kt">void</span> <span class="nf">A</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">lock_acquire</span><span class="p">(</span><span class="n">lock1</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">B</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">lock_release</span><span class="p">(</span><span class="n">lock1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">void</span> <span class="nf">B</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>    <span class="n">lock_acquire</span><span class="p">(</span><span class="n">lock1</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Hello world!&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">lock_release</span><span class="p">(</span><span class="n">lock1</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In this case, the thread is supposed to still hold the lock <strong>after</strong> B
+returns.</p>
+
+<p>The simplest way would be, keep a counter (initial value 0) for each lock. When
+a thread acquires a lock, increase that counter. When it release the lock, decrease
+the counter, only actually release a lock when the counter reaches 0.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[OS161 Synchronization Primitives: Semaphore]]></title>
@@ -1009,295 +1321,6 @@ and also write a stale value. Things get totally messed up and errors such as
 really want to disable interrupt (<code>int x = splhigh()</code>) before you do <code>tlb_probe</code>
 and re-enable it (<code>splx(x)</code>) after <code>tlb_write</code>. Alternatively, you can also use a
 spin lock to protect your access to TLB.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 Swapping]]></title>
-    <link href="http://jhshi.me/2012/04/28/os161-swapping/"/>
-    <updated>2012-04-28T13:27:39-04:00</updated>
-    <id>http://jhshi.me/2012/04/28/os161-swapping</id>
-    <content type="html"><![CDATA[<p>Now that you can <a href="http://jhshi.me/2012/04/24/os161-physical-page-management">allocate/free physical pages</a>, and you have <a href="http://jhshi.me/2012/04/27/os161-tlb-miss-and-page-fault">demand paging
-through handling TLB miss</a>. Let&#8217;s get the final part work: swapping.</p>
-
-<!-- more -->
-
-
-<h3>Three basic operations for a physical page</h3>
-
-<p>The first is called <strong>evict</strong>. In a nutshell, <code>evict</code> a physical page means we
-modify the page table entry so that this page is not Present (<code>PTE_P</code>), but
-Swapped (<code>PTE_S</code>). And we also need to shoot down the relative TLB entry. But in
-<code>evict</code>, we will not write the page&#8217;s content to disk. Apparently, <strong>evict can
-only operate on clean pages</strong>.</p>
-
-<p>The second operation is <strong>swapout</strong>. We first write this page&#8217;s content to
-disk, which makes the page from dirty to clean. And the we just evict it.
-<strong>swapout operation is for dirty pages</strong>.</p>
-
-<p>The last operations is <strong>swapin</strong>. Basically, it&#8217;s for read some virtual page
-from swap file and place it in some physical page, and also need to modify
-the relevant page table entry, making this page Present (<code>PTE_P</code>) instead of
-Swapped(<code>PTE_S</code>).</p>
-
-<h3>How to store the swapped pages</h3>
-
-<p>We have two options here: store the pages in a <strong>disk</strong>, or in a <strong>file</strong>.</p>
-
-<p>By default, sys161 provide two disks through lamebus, i.e., <code>lhd0</code> and <code>lhd1</code>. If
-you want to store the pages in the raw disk, you should open the swap space like
-this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">vnode</span><span class="o">*</span> <span class="n">swapfile</span><span class="p">;</span>
-</span><span class='line'><span class="kt">int</span> <span class="n">err</span> <span class="o">=</span> <span class="n">vfs_open</span><span class="p">(</span><span class="s">&quot;lhd0raw:&quot;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">swapfile</span><span class="p">);</span>
-</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">err</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="k">return</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Note that the file name must be <code>lhd0raw:</code> or <code>lhd1raw</code> and the open flag must
-be <code>O_RDWR</code>, since the disk is there, and needn&#8217;t to be created or trunked.</p>
-
-<p>On the other hand, if you decided to just store the pages in a normal file, then
-you probably want to create the file like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='c'><span class='line'><span class="k">struct</span> <span class="n">vnode</span><span class="o">*</span> <span class="n">swapfile</span><span class="p">;</span>
-</span><span class='line'><span class="kt">int</span> <span class="n">err</span> <span class="o">=</span> <span class="n">vfs_open</span><span class="p">(</span><span class="s">&quot;swapfile&quot;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="o">|</span><span class="n">O_CREAT</span><span class="o">|</span><span class="n">O_TRUNC</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">swapfile</span><span class="p">);</span>
-</span><span class='line'><span class="k">if</span> <span class="p">(</span><span class="n">err</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span><span class='line'>    <span class="k">return</span> <span class="n">err</span><span class="p">;</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The file name is arbitrary, just choose one you like. And we provide the
-<code>O_TRUNC</code> flag so that we got a &#8220;clean&#8221; swap file that contains no contents.
-Then the file will be created under the root directory.</p>
-
-<p>From my experience, store pages in normal file could be two times faster in
-terms of read/write bandwidth.</p>
-
-<p>For the same reason why we can not open consoles in <code>thread_create</code>, you can not
-do this in <code>vm_bootstrap</code> since at that point, VFS system
-was not initialized yet (see <code>$OS161_SRC/kern/startup/main.c</code> for boot sequence,
-especially line 125~130). But it&#8217;s OK, we can <strong>open the file until we really
-need to write pages</strong>, e.g., when we swap out the first page.</p>
-
-<p>We&#8217;ll leverage the file operation to manipulate swapped pages. You may want to
-review the file operation system calls to get familiar with VFS operations. We
-use a lot <code>uio_kinit</code> and <code>VOP_READ</code>/<code>VOP_WRITE</code> here. But before all these, we need
-to first create a swap file.</p>
-
-<p>We also need some data structure to record each page&#8217;s location in the swap
-file. This data structure should be something like a map. The key is (address
-space, va) pair, and the value is the location of the page. As usual, for
-simplicity, we can just use a statically allocated array. <strong>Each array element
-contains the (address space, va) pair, and this element&#8217;s index is the page&#8217;s
-location</strong>. Of course, we need to set up a limit of maximum swapped page number
-if we adopt this silly manner. When swap out a page, we first look up this
-array (by comparing <code>as</code> and <code>va</code>) and find out if the swap file has already
-contain a copy of this page, if yes then we directly overwrite that page and if
-no, we just find a available slot and write the page to that slot.</p>
-
-<p>A important note is that you want to <strong>create ONE swap file for all process</strong>,
-instead of one swap file for each process. Since by doing the later, you also
-have to allocate a mapping structure for each process and you&#8217;ll run out of
-memory very quickly (kernel pages are fixed, right?). Now the swap file and the
-mapping data structure is a shared resource among all processes. So you need to
-protect them with a lock.</p>
-
-<h3>Two I/O operations on the swap file</h3>
-
-<p>These two operations is quite straightforward. The first is called <code>write_page</code>,
-which is responsible to <strong>write a page content to a specified location of the
-swap file</strong>. The second is <code>read_page</code>, which is to <strong>read a specified page in
-the swap file and copy the content to a physical page</strong>. We do not necessarily
-have to have these to util functions but it&#8217;s always good to abstract low level
-operations and encapsulate to a convenient interface.</p>
-
-<h3>The Swapping Work flow</h3>
-
-<p>In your paging algorithm, you certainly will first look for free physical
-pages. But once you fail to find such a page, you have to swap some page out
-to get a free page. That&#8217;s what the magic function <code>MAKE_PAGE_AVAIL</code> do in
-<a href="http://jhshi.me/2012/04/24/os161-physical-page-management">my previous post about physical page allocation</a>.</p>
-
-<p>Now let&#8217;s take a look at the magic function. Denote the page that was to
-swapped out as victim. If it&#8217;s state is <code>PAGE_STATE_CLEAN</code>, it means that this
-page already have a copy in disk and was not ever modified since swapped in. So
-we can safely discard it&#8217;s content. We use the <code>evict</code> operation to deal with it.
-And after that, this page is available.</p>
-
-<p>If this page is dirty, which means either this page do not have a copy in swap
-file or this page was modified since it&#8217;s swapped in, in both case, we need to
-write its content to swap file. We can use the <code>swapout</code> operation here.</p>
-
-<p>In <code>vm_fault</code> with fault type <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, when we find that
-this page is not Present (<code>PTE_P</code>), instead of allocate a new page for it, we
-need to further check if this page was swapped (<code>PTE_S</code>), if yes then we need to
-swap it in, if no then we can allocate a new physical page for it.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 TLB Miss and Page Fault]]></title>
-    <link href="http://jhshi.me/2012/04/27/os161-tlb-miss-and-page-fault/"/>
-    <updated>2012-04-27T19:27:26-04:00</updated>
-    <id>http://jhshi.me/2012/04/27/os161-tlb-miss-and-page-fault</id>
-    <content type="html"><![CDATA[<p>Now we&#8217;ve set up user address space, it&#8217;s time to handle TLB/page faults. Note
-that there is a difference between TLB and page faults:</p>
-
-<ul>
-<li><p>TLB fault means the hardware don&#8217;t know how to translate a virtual address
-since the translation didn&#8217;t present in any TLB entry. So the hardware raise a
-TLB fault to let the kernel decide how to translate that address.</p></li>
-<li><p>Page fault means the user program tries to access a page that is not in
-memory, either not yet allocated or swapped out.</p></li>
-</ul>
-
-
-<!-- more -->
-
-
-<h3>TLB Entry Format</h3>
-
-<p>In sys161, which simulates MIPS R3000, there are totally 64 TLB entries. Each
-entry is a 64-bit value that has the following format:</p>
-
-<p><img class="center" src="http://jhshi.me/images/2012-04-27-mipsr3000-tlb.png"></p>
-
-<p>Section 18.6 of <a href="http://pages.cs.wisc.edu/~remzi/OSFEP/vm-tlbs.pdf">this document</a> contains a detailed description of the
-meaning of each bits. But briefly, VPN (abbr. for Virtual Page Frame Number)
-is the high 20 bits of a virtual address and PPN is the high 20 bits of a
-physical address space. <strong>When Dirty bit is 1, it means this page is writable,
-otherwise, it&#8217;s read-only.</strong> When Valid bit is 1, it means this TLB entry
-contains a valid translation.</p>
-
-<p>In OS161, we can just ignore the ASID part and Global bit, unless you really
-want to do some tricks such as multiplex TLB among processes instead of just
-shoot down all TLB entries when context switch. Also, we can ignore the NoCache
-bit.</p>
-
-<h3>TLB Miss Type</h3>
-
-<p>When translation a virtual address, the hardware will issue a parallel search
-in all the TLB entries, using the VPN as a search key. If the hardware failed to
-find a entry or find a entry but with Valid bit is 0, a TLB Miss will be
-issued. The miss type could be <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, depending on
-whether it&#8217;s a read or write operation. On the other hand, if it&#8217;s a write
-operation and hardware find a valid TLB entry of VPN, but the Dirty bit is 0,
-then this is also a TLB miss with type <code>VM_FAULT_READONLY</code>.</p>
-
-<p>If none of above cases happen, then this is a TLB hit, everybody is happy :-)</p>
-
-<h3>TLB Manipulate Utils</h3>
-
-<p>Before we discuss how to handle a TLB fault. We first take a look at how
-to manipulate the TLB entries. The functions that access TLB can be found
-at <code>$OS161_SRC/kern/arch/mips/include/tlb.h</code>. Four routines are provided. And the
-comments there are quite clear. We use <code>tlb_probe</code> to query the TLB bank, and use
-<code>tlb_read</code>/<code>tlb_write</code> to read/write a specific TLB entry, and use <code>tlb_random</code> to
-let the hardware decide which entry to write to.</p>
-
-<h3>Finally, handle TLB Miss</h3>
-
-<p>On a TLB fault, the first thing to do is to check whether the faulting address
-is a valid user space address. Since it&#8217;s possible that the fault is caused by
-<code>copyin</code>/<code>copyout</code>, which expect an TLB fault. So what&#8217;s an &#8220;valid&#8221; user space
-address?</p>
-
-<ul>
-<li>User code or date segment</li>
-<li>User heap, between <code>heap_start</code> and <code>heap_end</code></li>
-<li>User stack</li>
-</ul>
-
-
-<p>If the address is invalid, then we directly return some non-zero error code, to
-let the <code>badfault_func</code> capture the fault.</p>
-
-<p>For <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, we just walk current address space&#8217;s page
-table, and see if that page actually exists (by checking the <code>PTE_P</code> bit). If no then we just
-allocate a new page and modify the page table entry to insert the mapping
-(since we haven&#8217;t turn on swap yet, so <strong>not exist means this is the first time
-we access this page</strong>). The permissions of the newly allocated page should be
-set according to the region information we stored in <code>struct addrspace</code>.
-Finally we just use <code>tlb_random</code> to insert this mapping to TLB. Of course,
-you can adopt some TLB algorithm here that choosing a specific TLB victim. But
-<strong>only do this when you have all your VM system working.</strong></p>
-
-<p>For <code>VM_FAULT_READONLY</code>, <strong>this page is already in memory and the mapping is
-already in TLB bank</strong>, just that the Dirty bit is 0 and user try to write
-this page. So <strong>we first check if user can really write this page</strong>, maybe
-by the access bits in the low 12 bits of page table entry. (Recall that in
-<code>as_define_region</code>, user passed in some attributes like readable, writable and
-executable. You should record them down there and use them to check here).</p>
-
-<p>If user want to write a page that he has no rights to write, then this is a
-access violation. You can just panic here or more gracefully, kill current
-process. But if user can actually write this page, then we first query TLB
-bank to get the index of the TLB entry, set the Dirty bit of <code>entrylo</code> and write
-it back use <code>tlb_write</code>. Don&#8217;t forget to change the physical page&#8217;s state to
-<code>PAGE_STATE_DIRTY</code> (It&#8217;s useless now but will be useful in swapping)</p>
-
-<p>The above are pretty much what <code>vm_fault</code> does. Three extra tips:</p>
-
-<ul>
-<li><p>Since TLB is also a shared resource, so you&#8217;d better <strong>use a lock to
-protect the access to it</strong>. And it&#8217;s better be a <code>spinlock</code> since sometimes we
-perform TLB operations in interrupt handler, where we don&#8217;t want to sleep.</p></li>
-<li><p><strong>Do not print anything inside <code>vm_fault</code>.</strong> <code>kprintf</code> may touch some of the
-TLB entry so that the TLB has been changed between the miss and <code>vm_fault</code>, which
-can lead to some really weird bugs.</p></li>
-<li><p><strong>Assumption is the source of all evil. Use a lot KASSET to make your
-assumption explicit and check if they are right.</strong></p></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 sbrk System Call]]></title>
-    <link href="http://jhshi.me/2012/04/27/os161-sbrk-system-call/"/>
-    <updated>2012-04-27T18:17:36-04:00</updated>
-    <id>http://jhshi.me/2012/04/27/os161-sbrk-system-call</id>
-    <content type="html"><![CDATA[<p>If you&#8217;re not familiar with <code>sbrk</code> system call, here is <a href="http://en.wikipedia.org/wiki/Sbrk">it&#8217;s wiki</a>,
-and its <a href="http://www.cs.utah.edu/flux/moss/node39.html">interface description</a>. In a nutshell,
-<code>malloc</code> will use <code>sbrk</code> to get heap space.</p>
-
-<!-- more -->
-
-
-<p>In <code>as_define_region</code>, we&#8217;ve find the highest address that user text and data
-segment occupy, and based on this, we&#8217;ve set the <code>heap_start</code> in <code>struct
-addrspace</code>. This makes the <code>sbrk</code> system call implementation quite easy: almost
-just parameter checking work. Several points:</p>
-
-<ul>
-<li><p><code>inc</code> could be negative, so make sure <code>heap_end+inc</code> >= <code>heap_start</code></p></li>
-<li><p>We need to set up a limit to user&#8217;s heap size, e.g. 16MB or 32MB.
-Otherwise, some application such as the test program <code>malloctest</code> will try to
-malloc as much as memory as it can (~1GB), and your OS will suffer serving
-these kind of programs, especially when you have only 512KB physical memory. So
-we need to check <code>heap_end+inc-heap_start &lt; USER_HEAP_LIMIT</code></p></li>
-<li><p>Don&#8217;t forget round up inc by 4. This is optional but can lower the chance
-of unaligned pointers</p></li>
-</ul>
-
-
-<p>After all these checking, just return <code>heap_end</code> as a <code>void*</code> pointer and increase
-<code>heap_end</code> by <code>inc</code>. Of course, like any other system calls, you need to add a
-case entry in the <code>syscall</code> function.</p>
 ]]></content>
   </entry>
   

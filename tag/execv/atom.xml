@@ -4,7 +4,7 @@
   <title><![CDATA[Tag:execv | Pearls in Life]]></title>
   <link href="http://jhshi.me/tag/execv/atom.xml" rel="self"/>
   <link href="http://jhshi.me/"/>
-  <updated>2013-04-04T18:36:39-04:00</updated>
+  <updated>2013-04-05T14:19:28-04:00</updated>
   <id>http://jhshi.me/</id>
   <author>
     <name><![CDATA[Jinghao Shi]]></name>
@@ -54,7 +54,7 @@ necessary</li>
 <p>For convenience, assume that arguments are {"foo", "os161", "execv", <code>NULL</code>}.
 Then after packing, my kernel buffer looks like this:</p>
 
-<p><img class="center /images/2012-03-11-kargv.png  Arguments in" src="<code>kargv</code>"></p>
+<p>{% img center /images/2012-03-11-kargv.png  Arguments in <code>kargv</code> %}</p>
 
 <p><strong>Typo: </strong><code>kargv[2]</code> should be 28, not 26.</p>
 
@@ -81,7 +81,7 @@ otherwise some weird bus error or TLB miss will occur.</p>
 <p>The steps are shown as follows (here we assume <code>stackptr</code> initial value is
 <code>0x8000000</code>):</p>
 
-<p><img class="center /images/2012-03-11-stackptr.png Change of" src="<code>stackptr</code>"></p>
+<p>{% img center /images/2012-03-11-stackptr.png Change of <code>stackptr</code>%}</p>
 ]]></content>
   </entry>
   

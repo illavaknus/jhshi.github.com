@@ -4,7 +4,7 @@
   <title><![CDATA[Category: os161 | Pearls in Life]]></title>
   <link href="http://jhshi.me/category/os161/atom.xml" rel="self"/>
   <link href="http://jhshi.me/"/>
-  <updated>2013-04-04T18:36:39-04:00</updated>
+  <updated>2013-04-05T14:19:28-04:00</updated>
   <id>http://jhshi.me/</id>
   <author>
     <name><![CDATA[Jinghao Shi]]></name>
@@ -12,6 +12,289 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: RWLock]]></title>
+    <link href="http://jhshi.me/2013/04/05/os161-synchronization-primitives-rwlock/"/>
+    <updated>2013-04-05T13:30:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/05/os161-synchronization-primitives-rwlock</id>
+    <content type="html"><![CDATA[<p>The idea of <a href="http://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock">Reader-Writer Lock</a> is quite simple. In normal <a href="/2013/04/04/os161-synchronization-primitives-lock">lock</a>,
+we don't differentiate the threads. That said, each thread who wants to enter the
+critical section must first acquire the lock. But on a second thought, you may
+find that threads actually have different behavior inside the critical section:
+some threads just want to see the values of shared variable, while others really
+want to update those variables.</p>
+
+<!-- more -->
+
+
+<h3>An Example</h3>
+
+<p>Suppose we have a book database in a library, each reader who wants to query the
+database must first acquire the lock before he can actually do the query. The
+library manager, who wants to update some book info also need to acquire the
+lock before he can do the actual update. In this case, we can see that the
+queries of multiple readers in fact have no conflict. So ideally they should be
+allowed to be in the critical section at the same time. On the other hand, the
+library manager must have exclusive access to the database while he's updating.
+No readers, no other managers can enter the critical section until the first
+manager leaves.</p>
+
+<p>So, two rules for rwlock:</p>
+
+<ol>
+<li>Multiple readers can in the critical section at the same time</li>
+<li>One and only one writers can in the critical section at any time</li>
+</ol>
+
+
+<h3>Starvation</h3>
+
+<p>Suppose the coming sequence of threads are "RWRRRRR...", in which R denotes reader
+and W denotes writer. The first reader arrives, and found no one in the critical
+section, and he happily comes in. Before he leaves, the writer arrives, but
+found there is a reader inside the critical section, so the writer wait. While
+the write is waiting, the second reader comes and find there is one reader
+inside the critical section, literally, it's OK for him to come in according to
+the rules, right? The same case applies to the third, forth,..., readers.</p>
+
+<p>So without special attention, we see readers come and go, while the poor writer
+keeps waiting, for virtually a "unbounded" time. In this case, the writer is
+starved.</p>
+
+<p>The thing is, the second, third, forth..., readers shouldn't enter critical section
+since there is a write waiting before them!</p>
+
+<h3>Implementation</h3>
+
+<p>There are many ways to implement rwlock. You can use any of the semaphore, cv or
+lock. Here I introduce one using semaphore and lock. It's very simple, yet has
+the limitation that only support support at most a  certain number of readers in
+the critical section.</p>
+
+<p>Let's imagine the critical section as a set of resources. The initial capacity
+is <code>MAX_READERS</code>. The idea is each reader needs one of these resources to enter
+the critical section, while each writer needs all of these resources (to prevent other
+readers or writers) to enter.</p>
+
+<p>To let the readers be aware of the waiting writers, each thread should first
+acquire a lock before he can acquire the resource.</p>
+
+<p>So for <code>rwlock_acquire_read</code>:</p>
+
+<ol>
+<li>Acquire the lock</li>
+<li>Acquire a resource using <code>P</code></li>
+<li>Release the lock</li>
+</ol>
+
+
+<p>For <code>rwlock_release_read</code>, just release the resource using <code>V</code>.</p>
+
+<p>In <code>rwlock_acquire_write</code>:</p>
+
+<ol>
+<li>Acquire the lock, so that no other readers/writer would be able to acquire
+the rwlock</li>
+<li>Acquire <strong>ALL</strong> the resources by doing <code>P</code> <code>MAX_READERS</code> times</li>
+<li>Release the lock. It's safe now since we got all the resources.</li>
+</ol>
+
+
+<p>For <code>rwlock_release_write</code>, just release all the resources.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: CV]]></title>
+    <link href="http://jhshi.me/2013/04/05/os161-synchronization-primitives-cv/"/>
+    <updated>2013-04-05T12:37:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/05/os161-synchronization-primitives-cv</id>
+    <content type="html"><![CDATA[<p><a href="http://en.wikipedia.org/wiki/Monitor_(synchronization)">Condition variable</a> is used for a thread to wait for some condition to be
+true before continuing. The implementation is quite simple compared to
+<a href="/2013/04/04/os161-synchronization-primitives-lock">lock</a>, yet the difficult part is to understand how a CV is supposed to
+used.</p>
+
+<!-- more -->
+
+
+<h3>CV Interface</h3>
+
+<p>Condition variable has two interfaces: <code>cv_wait</code> and <code>cv_signal</code>. <code>cv_wait</code> is
+used to wait for a condition to be true, and <code>cv_signal</code> is used to notify other
+threads that a certain condition is true.</p>
+
+<p>So what?</p>
+
+<p>Let's consider a producer-consumer case, where a bunch of threads share a
+resource pool, some of them (producer) is responsible to put stuff to the pool
+and others (consumer) are responsible to take stuff from the pool. Obviously, we
+have two rules.</p>
+
+<ol>
+<li>If the pool is full, then producers can not put to the pool</li>
+<li>If the pool is empty, then consumers can not take stuff from the pool</li>
+</ol>
+
+
+<p>And we use two condition variables for each of these rules: <code>pool_full</code> and
+<code>pool_empty</code>. Here is the pseudo code for producer and consumer:</p>
+
+<p>```c
+void producer(void) {</p>
+
+<pre><code>lock_acquire(pool_lock);
+while (pool_is_full) {
+    cv_wait(pool_full, pool_lock);
+}
+produce();
+/* notify that the pool now is not empty, so if any one is waiting
+ * on the pool_empty cv, wake them up 
+ */
+cv_signal(pool_empty, pool_lock);
+lock_release(pool_lock);
+</code></pre>
+
+<p>}</p>
+
+<p>void consumer(void) {</p>
+
+<pre><code>lock_acquire(pool_lock);
+while (pool_is_empty) {
+    cv_wait(pool_empty, pool_lock);
+}
+consume();
+/* notify that the pool now is not full, so if any one is waiting
+ * on the pool_full cv, wake them up 
+ */
+
+cv_signal(pool_full, pool_lock);
+lock_release(pool_lock);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Here we also use a lock to protect access to the pool. We can see from this
+example:</p>
+
+<ol>
+<li>Condition variable is virtually a wait channel</li>
+<li>Condition variable is normally used together with lock, but <strong>condition
+variable itself doesn't contain a lock</strong></li>
+</ol>
+
+
+<h3>What's in <code>cv</code> structure?</h3>
+
+<p>Obviously, we need a wait channel. And that's it (probably plus a <code>cv_name</code>).</p>
+
+<h3><code>cv_wait</code> and <code>cv_signal</code></h3>
+
+<p>Now let's get to business. The comment in <code>$OS161_SRC/kern/inlucde/synch.h</code>
+basically told you everything you need to do.</p>
+
+<p>In <code>cv_wait</code>, we need to:</p>
+
+<ol>
+<li>Lock the wait channel</li>
+<li>Release the lock passed in</li>
+<li>Sleep on the wait channel</li>
+<li>When waked up, re-acquire the lock.</li>
+</ol>
+
+
+<p>So before <code>cv_wait</code>, we should already hold the lock (so that we can release
+it). And after <code>cv_wait</code>, we still hold the lock.</p>
+
+<p>In <code>cv_signal</code>, we just wake up somebody in the wait channel using
+<code>wchan_wakeone</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[OS161 Synchronization Primitives: Lock]]></title>
+    <link href="http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock/"/>
+    <updated>2013-04-04T15:23:00-04:00</updated>
+    <id>http://jhshi.me/2013/04/04/os161-synchronization-primitives-lock</id>
+    <content type="html"><![CDATA[<p>Lock is basically just a semaphore whose initial counter is 1. <code>lock_acquire</code> is
+like <code>P</code>, while <code>lock_release</code> is like <code>V</code>. You probably want to go over
+<a href="/2013/04/04/os161-synchronization-primitives-semaphore">my previous post about semaphore</a></p>
+
+<!-- more -->
+
+
+<h3>Lock's holder</h3>
+
+<p>However, since only one can hold the lock at any given time, that guy is
+considered to be the <strong>holder</strong> of this lock. While in semaphore, we don't have
+such a holder concept since multiple thread can "hold" the semaphore at the same
+time.</p>
+
+<p>Thus we need to store the holder information in our lock structure, along with the
+conventional spin lock and wait channel. Intuitively, you may tempted to use the
+thread name (<code>curthread-&gt;t_name</code>) as the thread's identifier. Nevertheless, same
+with the case in real world, the thread's name isn't necessarily unique. The
+OS161 doesn't forbidden us to create a bunch of threads with the same name.</p>
+
+<p>There is a global variable defined in <code>$OS161_SRC/kern/include/current.h</code> named
+<code>curthread</code>, which is a pointer to the kernel data structure of current thread.
+Two different threads definitely have different thread structures, which makes
+it a good enough thread identifier.</p>
+
+<h3>Reentrant Lock</h3>
+
+<p>Another trick thing is to decide whether we support <a href="http://en.wikipedia.org/wiki/Reentrant_mutex">reentrant lock</a> or not.
+Basically, a process can acquire a reentrant lock multiple times without
+blocking itself.</p>
+
+<p>At first glance, you may wonder what kind of dumb thread would acquire a lock
+multiple times anyway? Well, that kind of thread does exist, and they may not be
+dumb at all. Reentrant lock is useful when it's difficult for a thread to track
+whether it has grabbed the lock. Suppose we have multiple threads that traverse
+a graph simultaneously, and each thread need to first grab the lock of a node
+before it can visit that node. If the graph has a circle or there are multiple
+paths leads to the same node, then it's possible that a thread visit the same
+node twice. Although there is a function named <code>lock_do_i_hold</code> that can tell
+whether a thread holds a lock or not, unfortunately it's not a public interface of lock.</p>
+
+<p>In OS161, it's OK that you choose to not support reentrant lock, so when you
+detect a thread try to acquire a lock while it's the lock's holder, just panic.
+But if you want to support reentrant lock, <strong>you need to make sure a thread won't
+accidentally loose a lock.</strong> For example,</p>
+
+<p>```c
+void A(void) {</p>
+
+<pre><code>lock_acquire(lock1);
+
+B();
+
+lock_release(lock1);
+</code></pre>
+
+<p>}</p>
+
+<p>void B(void) {</p>
+
+<pre><code>lock_acquire(lock1);
+
+printf("Hello world!");
+
+lock_release(lock1);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>In this case, the thread is supposed to still hold the lock <strong>after</strong> B
+returns.</p>
+
+<p>The simplest way would be, keep a counter (initial value 0) for each lock. When
+a thread acquires a lock, increase that counter. When it release the lock, decrease
+the counter, only actually release a lock when the counter reaches 0.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[OS161 Synchronization Primitives: Semaphore]]></title>
@@ -141,218 +424,6 @@ case the user program doesn't do this.</p>
 not directly call them in kernel, so you may need to make some "shortcuts" in
 your system call implementation to let the kernel be able to call <code>sys_waitpid</code>
 and <code>sys_exit</code>.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 SAME_STACK Check Fail in Trap]]></title>
-    <link href="http://jhshi.me/2012/05/02/os161-same_stack-check-fail-in-trap/"/>
-    <updated>2012-05-02T14:02:11-04:00</updated>
-    <id>http://jhshi.me/2012/05/02/os161-same_stack-check-fail-in-trap</id>
-    <content type="html"><![CDATA[<p>There are several <code>SAME_STACK</code> asserts in <code>$OS161_SRC/kern/arch/mips/locore/trap.c</code> to
-ensure that <strong>current thread did not run out of kernel stack</strong>.</p>
-
-<!-- more -->
-
-
-<p>A typical assert may looks like:</p>
-
-<p><code>c
-KASSERT(SAME_STACK(cpustacks[curcpu-&gt;c_number]-1, (vaddr_t)tf))
-</code></p>
-
-<p>During the lab, I sometimes fail this assert. At first, I thought I've run
-out of kernel stack so I enlarge the <code>STACK_SIZE</code> (<code>$OS161_SRC/kern/include/thread.h</code>)
-to 16 KB. But I still fail this assert after that. Then I take a look at the
-definition of the <code>SAME_STACK</code> macro:</p>
-
-<p>```c</p>
-
-<h1>define SAME_STACK(p1, p2) (((p1) &amp; STACK_MASK) == ((p2) &amp; STACK_MASK))</h1>
-
-<p>```</p>
-
-<p>I found this macro problematic. Suppose <code>STACK_SIZE = 0X00004000</code>, then
-<code>STACK_MASK = ~(STACK_SIZE-1) = 0XFFFFC000</code>. Assume <code>p1 (stack top) =
-0X80070FFF</code>, <code>p2 (stack pointer) = 0x8006FFFF</code>, then we've only used 0x00001000
-bytes stack but <code>SAME_STACK</code> macro will fail, since <code>p1 &amp; STACK_MASK =
-0X80070000, p2 &amp; STACK_MASK = 0X8006C000.</code></p>
-
-<p><strong>The point here is the stack top address may not be STACK_SIZE aligned. So we
-can not do the same stack check by simply checking their base addresss.</strong></p>
-
-<p>So we need to modify this part to get our kernel work. This is not your fault
-but probably a bug shipped with the kernel.</p>
-
-<p>You can use any tricky macros here but a simple pair of comparison will be
-suffice.</p>
-
-<p><code>c
-KASSERT(((vaddr_t)tf) &gt;= ((vaddr_t)curthread-&gt;t_stack));
-KASSERT(((vaddr_t)tf) &lt; ((vaddr_t)curthread-&gt;t_stack+STACK_SIZE));
-</code></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 Duplicated TLB entries]]></title>
-    <link href="http://jhshi.me/2012/05/02/os161-duplicated-tlb-entries/"/>
-    <updated>2012-05-02T13:18:47-04:00</updated>
-    <id>http://jhshi.me/2012/05/02/os161-duplicated-tlb-entries</id>
-    <content type="html"><![CDATA[<p>Sys161 will panic if you try to write a TLB entry with a <code>entryhi</code>, but
-there are already a TLB entry with the same <code>entryhi</code> but in a different TLB
-slot. This is because <strong>entryhi should be a UNIQUE key in the TLB bank.</strong></p>
-
-<!-- more -->
-
-
-<p>When you want to update a TLB entry (e.g., shoot down a TLB entry, or set the
-Dirty bit, etc.), you need to first use <code>tlb_probe</code> to query the TLB bank to get
-the TLB slot index and then use <code>tlb_read</code> to read the original value, and then
-use <code>tlb_write</code> to write the updated TLB entry value to this slot. <strong>But what
-if there is a interrupt after you <code>tlb_probe</code> but before <code>tlb_read</code>?</strong> Chance
-maybe that the TLB bank is totally refreshed so that you read a stale value
-and also write a stale value. Things get totally messed up and errors such as
-"Duplicated TLB entries" may occur.</p>
-
-<p>To resolve this, <strong>you need to protect your whole "<code>tlb_probe</code>-><code>tlb_read</code>->
-<code>tlb_write</code>" flow and make sure that this flow won't get interrupted.</strong> So you
-really want to disable interrupt (<code>int x = splhigh()</code>) before you do <code>tlb_probe</code>
-and re-enable it (<code>splx(x)</code>) after <code>tlb_write</code>. Alternatively, you can also use a
-spin lock to protect your access to TLB.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[OS161 Swapping]]></title>
-    <link href="http://jhshi.me/2012/04/28/os161-swapping/"/>
-    <updated>2012-04-28T13:27:39-04:00</updated>
-    <id>http://jhshi.me/2012/04/28/os161-swapping</id>
-    <content type="html"><![CDATA[<p>Now that you can <a href="/2012/04/24/os161-physical-page-management">allocate/free physical pages</a>, and you have <a href="/2012/04/27/os161-tlb-miss-and-page-fault">demand paging
-through handling TLB miss</a>. Let's get the final part work: swapping.</p>
-
-<!-- more -->
-
-
-<h3>Three basic operations for a physical page</h3>
-
-<p>The first is called <strong>evict</strong>. In a nutshell, <code>evict</code> a physical page means we
-modify the page table entry so that this page is not Present (<code>PTE_P</code>), but
-Swapped (<code>PTE_S</code>). And we also need to shoot down the relative TLB entry. But in
-<code>evict</code>, we will not write the page's content to disk. Apparently, <strong>evict can
-only operate on clean pages</strong>.</p>
-
-<p>The second operation is <strong>swapout</strong>. We first write this page's content to
-disk, which makes the page from dirty to clean. And the we just evict it.
-<strong>swapout operation is for dirty pages</strong>.</p>
-
-<p>The last operations is <strong>swapin</strong>. Basically, it's for read some virtual page
-from swap file and place it in some physical page, and also need to modify
-the relevant page table entry, making this page Present (<code>PTE_P</code>) instead of
-Swapped(<code>PTE_S</code>).</p>
-
-<h3>How to store the swapped pages</h3>
-
-<p>We have two options here: store the pages in a <strong>disk</strong>, or in a <strong>file</strong>.</p>
-
-<p>By default, sys161 provide two disks through lamebus, i.e., <code>lhd0</code> and <code>lhd1</code>. If
-you want to store the pages in the raw disk, you should open the swap space like
-this:</p>
-
-<p>```c
-struct vnode* swapfile;
-int err = vfs_open("lhd0raw:", O_RDWR, 0, &amp;swapfile);
-if (err != 0) {</p>
-
-<pre><code>return err;
-</code></pre>
-
-<p>}
-```</p>
-
-<p>Note that the file name must be <code>lhd0raw:</code> or <code>lhd1raw</code> and the open flag must
-be <code>O_RDWR</code>, since the disk is there, and needn't to be created or trunked.</p>
-
-<p>On the other hand, if you decided to just store the pages in a normal file, then
-you probably want to create the file like this:</p>
-
-<p>```c
-struct vnode* swapfile;
-int err = vfs_open("swapfile", O_RDWR|O_CREAT|O_TRUNC, 0, &amp;swapfile);
-if (err != 0) {</p>
-
-<pre><code>return err;
-</code></pre>
-
-<p>}
-```</p>
-
-<p>The file name is arbitrary, just choose one you like. And we provide the
-<code>O_TRUNC</code> flag so that we got a "clean" swap file that contains no contents.
-Then the file will be created under the root directory.</p>
-
-<p>From my experience, store pages in normal file could be two times faster in
-terms of read/write bandwidth.</p>
-
-<p>For the same reason why we can not open consoles in <code>thread_create</code>, you can not
-do this in <code>vm_bootstrap</code> since at that point, VFS system
-was not initialized yet (see <code>$OS161_SRC/kern/startup/main.c</code> for boot sequence,
-especially line 125~130). But it's OK, we can <strong>open the file until we really
-need to write pages</strong>, e.g., when we swap out the first page.</p>
-
-<p>We'll leverage the file operation to manipulate swapped pages. You may want to
-review the file operation system calls to get familiar with VFS operations. We
-use a lot <code>uio_kinit</code> and <code>VOP_READ</code>/<code>VOP_WRITE</code> here. But before all these, we need
-to first create a swap file.</p>
-
-<p>We also need some data structure to record each page's location in the swap
-file. This data structure should be something like a map. The key is (address
-space, va) pair, and the value is the location of the page. As usual, for
-simplicity, we can just use a statically allocated array. <strong>Each array element
-contains the (address space, va) pair, and this element's index is the page's
-location</strong>. Of course, we need to set up a limit of maximum swapped page number
-if we adopt this silly manner. When swap out a page, we first look up this
-array (by comparing <code>as</code> and <code>va</code>) and find out if the swap file has already
-contain a copy of this page, if yes then we directly overwrite that page and if
-no, we just find a available slot and write the page to that slot.</p>
-
-<p>A important note is that you want to <strong>create ONE swap file for all process</strong>,
-instead of one swap file for each process. Since by doing the later, you also
-have to allocate a mapping structure for each process and you'll run out of
-memory very quickly (kernel pages are fixed, right?). Now the swap file and the
-mapping data structure is a shared resource among all processes. So you need to
-protect them with a lock.</p>
-
-<h3>Two I/O operations on the swap file</h3>
-
-<p>These two operations is quite straightforward. The first is called <code>write_page</code>,
-which is responsible to <strong>write a page content to a specified location of the
-swap file</strong>. The second is <code>read_page</code>, which is to <strong>read a specified page in
-the swap file and copy the content to a physical page</strong>. We do not necessarily
-have to have these to util functions but it's always good to abstract low level
-operations and encapsulate to a convenient interface.</p>
-
-<h3>The Swapping Work flow</h3>
-
-<p>In your paging algorithm, you certainly will first look for free physical
-pages. But once you fail to find such a page, you have to swap some page out
-to get a free page. That's what the magic function <code>MAKE_PAGE_AVAIL</code> do in
-<a href="/2012/04/24/os161-physical-page-management">my previous post about physical page allocation</a>.</p>
-
-<p>Now let's take a look at the magic function. Denote the page that was to
-swapped out as victim. If it's state is <code>PAGE_STATE_CLEAN</code>, it means that this
-page already have a copy in disk and was not ever modified since swapped in. So
-we can safely discard it's content. We use the <code>evict</code> operation to deal with it.
-And after that, this page is available.</p>
-
-<p>If this page is dirty, which means either this page do not have a copy in swap
-file or this page was modified since it's swapped in, in both case, we need to
-write its content to swap file. We can use the <code>swapout</code> operation here.</p>
-
-<p>In <code>vm_fault</code> with fault type <code>VM_FAULT_READ</code> or <code>VM_FAULT_WRITE</code>, when we find that
-this page is not Present (<code>PTE_P</code>), instead of allocate a new page for it, we
-need to further check if this page was swapped (<code>PTE_S</code>), if yes then we need to
-swap it in, if no then we can allocate a new physical page for it.</p>
 ]]></content>
   </entry>
   
