@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Tag:addrspace | Pearls in Life]]></title>
+  <title><![CDATA[Tag: addrspace | Pearls in Life]]></title>
   <link href="http://jhshi.me/tag/addrspace/atom.xml" rel="self"/>
   <link href="http://jhshi.me/"/>
-  <updated>2013-04-05T14:19:28-04:00</updated>
+  <updated>2013-04-05T16:36:07-04:00</updated>
   <id>http://jhshi.me/</id>
   <author>
     <name><![CDATA[Jinghao Shi]]></name>
@@ -112,7 +112,7 @@ the</code>heap_start<code>right after (</code>vaddr+sz<code>). Don't forget to *
 <p>This should also be the place we record each region information (e.g., base,
 size, permission, etc) so that we can check them in <code>vm_fault</code>.</p>
 
-<p>{% img center /images/2012-04-24-mips-as1.png %}</p>
+<p><img class="center" src="/images/2012-04-24-mips-as1.png"></p>
 
 <h3>Miscellaneous</h3>
 

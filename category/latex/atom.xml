@@ -4,7 +4,7 @@
   <title><![CDATA[Category: latex | Pearls in Life]]></title>
   <link href="http://jhshi.me/category/latex/atom.xml" rel="self"/>
   <link href="http://jhshi.me/"/>
-  <updated>2013-04-05T14:19:28-04:00</updated>
+  <updated>2013-04-05T16:36:07-04:00</updated>
   <id>http://jhshi.me/</id>
   <author>
     <name><![CDATA[Jinghao Shi]]></name>
@@ -25,7 +25,7 @@ this:</p>
 <!-- more -->
 
 
-<p>{% raw %}
+<p>
 <code>latex
 \usepackage{graphicx}
 % Must use this command BEFORE you begin document!
@@ -34,7 +34,7 @@ this:</p>
 % some content
 \end{document}
 </code>
-{% endraw %}</p>
+</p>
 
 <p>As you can see, the syntax of <code>graphicspath</code> command is very simple. You just
 enclose your picture path, either relative to current work path, or absolute
